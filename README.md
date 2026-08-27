@@ -54,7 +54,8 @@ Spy is not another tutorial toy. The compiler is **self-hosted** — `codegen.sp
 1. **High-Level Forever** — No headers, no manual memory pain, no type torture. If Python can do it in one line, Spy should too — but fast.
 2. **AI & Modern Ready** — First-class lists, dicts, pipes, match, closures, and future `ai` libs — so you can write real AI, apps, games, not just hello worlds.
 3. **One Language, Everywhere** — Compile to C for speed, C++ for UI (`SpyUI`), LLVM for optimization, and soon to WASM / Android / iOS from same `.spy`.
-4. **Open & Fun** — GPLv3, fully open, no corporate gatekeeping. Learn compiler design by reading 15K lines, not 500K.
+4. **Spider OS Native** — Future frameworks built *in* Spy for Spider OS — apps, UI, services, all Spy-native.
+5. **Open & Fun** — GPLv3, fully open, no corporate gatekeeping. Learn compiler design by reading code, not 500K.
 
 **Goal:** Be the *easiest* language to start, and *fast enough* to never leave.
 
@@ -198,6 +199,7 @@ spy <file.spy> --tokens              # dump tokens
 - [ ] WASM & Android targets
 - [ ] AI stdlib (tensors, `ai` module)
 - [ ] Hot reload & REPL
+- [ ] Spider OS frameworks (UI, App, System APIs in pure Spy)
 - [ ] Self-compiled `spy` written *entirely* in Spy
 
 Pick one. Own it. PR it.
