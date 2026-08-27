@@ -9,7 +9,7 @@
 
 **High-level syntax. No headers. C-level speed. Spy compiles to C / C++ / LLVM IR — and it's self-hosting.**
 
-> `spy-language` by [m4spylanguage](https://github.com/m4spylanguage) — GPL-3.0 — Made with ❤️ in India
+> Spy Language by [M4 Spider](https://github.com/m4spylanguage) — GPL-3.0 — Made with ❤️ in India
 
 ---
 
@@ -240,4 +240,4 @@ Free to use, modify, and distribute. Modified versions must stay GPL-3.0.
 **Logo / Icons:** `assets/spy-logo.png`, `spy.ico`, etc. are **Copyright © M4 Spider** — **NOT** under GPL. You may use them unmodified to refer to the official Spy Language. If you fork/modify Spy, you must **not** use these icons — use your own branding. See `assets/README_ICON_LICENSE.txt`.
 
 ---
-Made with ❤️ in India — M4 Spy Language — *"No headers. Just code."*
+Made with ❤️ in India — Spy Language by M4 Spider — *"No headers. Just code."*
