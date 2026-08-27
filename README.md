@@ -5,11 +5,9 @@
 [![Build](https://img.shields.io/badge/build-cmake-brightgreen)]()
 [![Lines](https://img.shields.io/badge/lines-15k%2B-blue)]()
 
-**Fast, self-hosting programming language that compiles to C / C++ / LLVM IR.**
+**High-level syntax. No headers. C-level speed. Spy compiles to C / C++ / LLVM IR — and it's self-hosting.**
 
-No header files. Python-like syntax. C-level performance. ~15K lines, 40+ tests.
-
-> `spy-language` by [m4spylanguage](https://github.com/m4spylanguage) — GPL-3.0
+> `spy-language` by [m4spylanguage](https://github.com/m4spylanguage) — GPL-3.0 — Made with ❤️ in India
 
 ---
 
@@ -26,6 +24,56 @@ fn main():
 ./spy hello.spy --ast        # show AST
 ./spy hello.spy --tokens     # show tokens
 ```
+
+---
+
+## 💭 Why Spy? Why We Built This
+
+**C is fast but painful. Python is beautiful but slow. We wanted both.**
+
+We were tired of:
+- Writing `.h` files just to declare what `.c` already defines
+- Boilerplate, macros, `Makefile` hell for a simple idea
+- Choosing between *joy* and *performance*
+
+**So we built Spy — a language that feels like Python, runs like C.**
+
+- No `#include`, no `.h`, no forward declarations — `import mathutils` just works
+- Clean `fn`, `let`, `if`, `for`, `list()` — high-level, readable, fun
+- Yet it emits clean C / LLVM you can ship anywhere — embedded, Android, desktop, server
+
+> **Small today (15K lines) — massive vision. This is day 1. We open-sourced early so YOU can shape it.**
+
+Spy is not another tutorial toy. The compiler is **self-hosted** — `codegen.spy` (1,723 lines) and `parser.spy` (943 lines) compile themselves. That's the proof it works.
+
+---
+
+## 🎯 What We Want — The Vision
+
+**A language for humans, not compilers.**
+
+1. **High-Level Forever** — No headers, no manual memory pain, no type torture. If Python can do it in one line, Spy should too — but fast.
+2. **AI & Modern Ready** — First-class lists, dicts, pipes, match, closures, and future `ai` libs — so you can write real AI, apps, games, not just hello worlds.
+3. **One Language, Everywhere** — Compile to C for speed, C++ for UI (`SpyUI`), LLVM for optimization, and soon to WASM / Android / iOS from same `.spy`.
+4. **Open & Fun** — GPLv3, fully open, no corporate gatekeeping. Learn compiler design by reading 15K lines, not 500K.
+
+**Goal:** Be the *easiest* language to start, and *fast enough* to never leave.
+
+---
+
+## 🙌 Why Contribute? (Why Even Bother With a Tiny Language?)
+
+Because tiny is the **best time** to join.
+
+- **Your name in history** — First 100 contributors to a language get remembered. Fix a bug today, it's in every future `spy --version`.
+- **Learn compilers for real** — Lexer (483 lines), Parser (1,125), Codegen (3,832) — you can read the *entire* compiler in a weekend.
+- **No bureaucracy** — No 3-month RFC. Open a PR, get merged, see it run.
+- **Build your dream feature** — Want `async`, `generics`, `AI tensors`, `hot reload`? Build it — Spy is small enough to let you.
+- **Keep it closed = useless; open = massive** — Keeping Spy closed helps nobody. Open means thousands can try, break, and make it legendary.
+
+> If you ever wanted to say *"I helped build a programming language"* — this is your chance. Right now. Early.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) — all levels welcome, even your first PR.
 
 ---
 
@@ -47,7 +95,7 @@ cmake -B build && cmake --build build
 
 ---
 
-## 📖 Syntax Guide
+## 📖 Syntax — High Level, No Headers, No Nonsense
 
 ### Variables
 ```spy
@@ -103,7 +151,7 @@ fn main():
         print(x)
 ```
 
-### Imports (No .h needed!)
+### Imports (No .h needed! That's the point.)
 ```spy
 import mathutils
 from mathutils import square, cube
@@ -112,8 +160,9 @@ fn main():
     print(mathutils.square(5))
     print(cube(6))
 ```
+> No header files. Ever. Just `import` a `.spy` file — the compiler reads it directly. Like Python, but compiled to C.
 
-### Extern C Interop
+### Extern C Interop (when you need it)
 ```spy
 extern fn printf(fmt: str) -> i32
 
@@ -137,6 +186,22 @@ spy <file.spy> --c                   # emit C code only
 spy <file.spy> --ast                 # dump AST
 spy <file.spy> --tokens              # dump tokens
 ```
+
+---
+
+## 🗺️ Roadmap — Help Us Build It
+
+- [x] Self-hosting (parser + codegen in Spy)
+- [x] C / C++ / LLVM backends
+- [x] SpyUI framework
+- [ ] Package manager (`spy get`)
+- [ ] LSP & VS Code extension
+- [ ] WASM & Android targets
+- [ ] AI stdlib (tensors, `ai` module)
+- [ ] Hot reload & REPL
+- [ ] Self-compiled `spy` written *entirely* in Spy
+
+Pick one. Own it. PR it.
 
 ---
 
@@ -166,4 +231,4 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) — PRs welcome! Please read coding style
 Free to use, modify, and distribute. Modified versions must stay GPL-3.0.
 
 ---
-Made with ❤️ in India — M4 Spy Language
+Made with ❤️ in India — M4 Spy Language — *"No headers. Just code."*
