@@ -3,6 +3,7 @@
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 [![Language](https://img.shields.io/badge/language-Spy%20%7C%20C%2B%2B-orange)]()
 [![Build](https://img.shields.io/badge/build-cmake-brightgreen)]()
+[![Discord](https://img.shields.io/badge/Discord-Join-5865F2?logo=discord)](https://discord.com/invite/WuCU8yPDpZ)
 
 **High-level syntax. No headers. C-level speed. Spy compiles to C / C++ / LLVM IR — and it's self-hosting.**
 
@@ -219,6 +220,10 @@ spy-language/
 ```
 
 ---
+
+## 💬 Community
+
+Join our Discord to ask questions, share ideas, and contribute: **https://discord.com/invite/WuCU8yPDpZ**
 
 ## 🤝 Contributing
 
