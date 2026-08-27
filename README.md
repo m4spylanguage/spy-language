@@ -200,6 +200,7 @@ spy <file.spy> --tokens              # dump tokens
 - [ ] AI stdlib (tensors, `ai` module)
 - [ ] Hot reload & REPL
 - [ ] Spider OS frameworks (UI, App, System APIs in pure Spy)
+- [x] Spider OS boot animation — written entirely in Spy
 - [ ] Self-compiled `spy` written *entirely* in Spy
 
 Pick one. Own it. PR it.
