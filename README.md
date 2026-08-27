@@ -66,7 +66,6 @@ Spy is not another tutorial toy. The compiler is **self-hosted** — `codegen.sp
 Because tiny is the **best time** to join.
 
 - **Your name in history** — First 100 contributors to a language get remembered. Fix a bug today, it's in every future `spy --version`.
-- **Learn compilers for real** — Lexer (483 lines), Parser (1,125), Codegen (3,832) — you can read the *entire* compiler in a weekend.
 - **No bureaucracy** — No 3-month RFC. Open a PR, get merged, see it run.
 - **Build your dream feature** — Want `async`, `generics`, `AI tensors`, `hot reload`? Build it — Spy is small enough to let you.
 - **Keep it closed = useless; open = massive** — Keeping Spy closed helps nobody. Open means thousands can try, break, and make it legendary.
@@ -218,8 +217,6 @@ spy-language/
 ├── CMakeLists.txt
 └── LICENSE (GPL-3.0)
 ```
-
-Core: `src/Codegen.cpp` (3,832) | `tests/codegen.spy` (1,723 self-hosted) | `tests/parser.spy` (943)
 
 ---
 
