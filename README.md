@@ -42,6 +42,23 @@ Spy Code (.spy) → Spy Compiler (AST Parser) → 4 Backends → Native Output
 | 3. LLVM IR | `-ir` | `spy_output.ll` | llvm-as / opt |
 | 4. Assembly | `-asm` | `spy_output.s` | nasm / gcc |
 
+### Compiler Pipeline
+
+<p align="center"><img src="assets/pipeline.png" alt="Spy Pipeline" width="900"/></p>
+
+> `.spy` → Lexer → Tokens → Parser → AST → Semantic Validation (Type Checker / Generics / RAII) → Codegens → Multi-Backend Transpilers → Native Binary
+
+### Dual Targets
+
+<p align="center"><img src="assets/modes.png" alt="Spy Modes" width="900"/></p>
+
+- **Mode 1: Standard Desktop** — SpyUI + glibc/Win32/Cocoa + Full Stdlib
+- **Mode 2: Bare-Metal** — Inline Assembly, `-ffreestanding`, Direct MMIO, Zero Dependencies — for Spider OS kernel
+
+### Platform Abstraction
+
+<p align="center"><img src="assets/platforms.png" alt="Spy Platforms" width="900"/></p>
+
 ---
 
 ## 💭 Why Spy? Why We Built This
