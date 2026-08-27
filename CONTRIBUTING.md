@@ -54,7 +54,7 @@ By contributing, you agree your code will be licensed under **GPL-3.0** same as 
 
 ## Code of Conduct
 
-Be respectful, constructive, no spam. Maintainer: [@m4spylanguage](https://github.com/m4spylanguage)
+Be respectful, constructive, no spam. Maintainer: [@m4 Spider](https://github.com/m4spylanguage)
 
 ## Questions?
 
