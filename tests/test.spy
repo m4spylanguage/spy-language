@@ -1,0 +1,66 @@
+# Spy Programming Language Engine & Compiler
+# Copyright (C) 2026 Valuvajjala Vivek Vardhan Rao
+#
+# Author: Valuvajjala Vivek Vardhan Rao
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+print("=== Day 2: Memory Management ===")
+
+# Allocate array of 10 i32s on heap
+let arr: *i32 = alloc[i32](10)
+let i: i32 = 0
+while i < 10:
+    arr[i] = i * i
+    i += 1
+
+# Read them back
+let j: i32 = 0
+while j < 10:
+    print(arr[j])
+    j += 1
+
+# Reallocate to 20 elements
+arr = realloc(arr, 20, i32)
+let k: i32 = 10
+while k < 20:
+    arr[k] = k * 100
+    k += 1
+
+print(arr[15])
+print(arr[19])
+
+# Free
+free(arr)
+
+# Pointer arithmetic
+let x: i32 = 42
+let p: *i32 = &x
+let q: *i32 = p + 1
+print(sizeof(i32))
+print(sizeof(f64))
+
+# Struct on heap
+struct Vec2:
+    x: f64
+    y: f64
+
+let v: *Vec2 = alloc[Vec2](1)
+v[0].x = 1.5
+v[0].y = 2.5
+print(v[0].x)
+print(v[0].y)
+free(v)
+
+print("=== Day 2: Memory PASSED ===")

@@ -1,0 +1,36 @@
+# Spy Programming Language Engine & Compiler
+# Copyright (C) 2026 Valuvajjala Vivek Vardhan Rao
+#
+# Author: Valuvajjala Vivek Vardhan Rao
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+fn main():
+    let a = list()
+    let b = list(10, 20, 30)
+    print("empty:", a)
+    print("three:", b)
+    print("len:", len(b))
+    b.push(40)
+    print("after push:", b)
+    let x = b.pop()
+    print("popped:", x)
+    print("after pop:", b)
+    let g = b.get(1)
+    print("get(1):", g)
+    b.set(0, 99)
+    print("after set:", b)
+    print("b[1]:", b[1])
+    b[1] = 55
+    print("after b[1]=55:", b)

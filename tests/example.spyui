@@ -1,0 +1,38 @@
+# Spy Programming Language Engine & Compiler
+# Copyright (C) 2026 Valuvajjala Vivek Vardhan Rao
+#
+# Author: Valuvajjala Vivek Vardhan Rao
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+import <spyui.h>
+
+fn main():
+    let win = SWindow("File Manager", 800, 600)
+    let sidebar = SFrame(250, 600)
+    let content = SFrame(550, 600)
+    let tabs = STabs()
+    let path_input = SInput("Enter path...")
+    let go_btn = SToolButton("Go")
+    let back_btn = SToolButton("<")
+    let up_btn = SToolButton("^")
+    let splitter = SSplitter(1)
+    let hbox = SHBoxLayout()
+    hbox.add(sidebar)
+    hbox.add(splitter)
+    hbox.add(content)
+    win.set_layout(hbox)
+    win.set_title("Spy File Manager")
+    win.set_size(1200, 800)
+    win.show()

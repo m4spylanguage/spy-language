@@ -1,0 +1,184 @@
+# Spy Programming Language Engine & Compiler
+# Copyright (C) 2026 Valuvajjala Vivek Vardhan Rao
+#
+# Author: Valuvajjala Vivek Vardhan Rao
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+struct TodoItem:
+    id: i32
+    text: *char
+    done: i32
+
+fn load_todos(path: *char) -> *TodoItem:
+    let content = read_file(path)
+    if content == "":
+        return alloc[TodoItem](0)
+    let count: i32 = 0
+    let i: i32 = 0
+    while content[i] != 0:
+        if content[i] == 10:
+            count += 1
+        i += 1
+    count += 1
+    let todos: *TodoItem = alloc[TodoItem](count)
+    let idx: i32 = 0
+    let start: i32 = 0
+    let j: i32 = 0
+    while content[j] != 0:
+        if content[j] == 10:
+            let line_len: i32 = j - start
+            todos[idx].id = idx + 1
+            todos[idx].text = alloc[char](line_len + 1)
+            let k: i32 = 0
+            while k < line_len:
+                todos[idx].text[k] = content[start + k]
+                k += 1
+            todos[idx].text[line_len] = 0
+            todos[idx].done = 0
+            idx += 1
+            start = j + 1
+        j += 1
+    if start < j:
+        let line_len2: i32 = j - start
+        todos[idx].id = idx + 1
+        todos[idx].text = alloc[char](line_len2 + 1)
+        let k2: i32 = 0
+        while k2 < line_len2:
+            todos[idx].text[k2] = content[start + k2]
+            k2 += 1
+        todos[idx].text[line_len2] = 0
+        todos[idx].done = 0
+        idx += 1
+    return todos
+
+fn save_todos(path: *char, todos: *TodoItem, count: i32):
+    let content = alloc[char](4096)
+    let pos: i32 = 0
+    let i: i32 = 0
+    while i < count:
+        if todos[i].done == 0:
+            let text = todos[i].text
+            let j: i32 = 0
+            while text[j] != 0:
+                content[pos] = text[j]
+                pos += 1
+                j += 1
+            content[pos] = 10
+            pos += 1
+        i += 1
+    content[pos] = 0
+    write_file(path, content)
+    free(content)
+
+fn cmd_add(path: *char, text: *char):
+    let todos = load_todos(path)
+    let count: i32 = 0
+    while todos[count].id != 0:
+        count += 1
+    let new_todos = realloc(todos, count + 1, TodoItem)
+    new_todos[count].id = count + 1
+    let len: i32 = 0
+    while text[len] != 0:
+        len += 1
+    new_todos[count].text = alloc[char](len + 1)
+    let i: i32 = 0
+    while i < len:
+        new_todos[count].text[i] = text[i]
+        i += 1
+    new_todos[count].text[len] = 0
+    new_todos[count].done = 0
+    save_todos(path, new_todos, count + 1)
+    print("Added: " + text)
+
+fn cmd_list(path: *char):
+    let todos = load_todos(path)
+    let count: i32 = 0
+    while todos[count].id != 0:
+        count += 1
+    if count == 0:
+        print("No todos.")
+        return
+    let i: i32 = 0
+    while i < count:
+        if todos[i].done == 0:
+            print("%d. [ ] %s" % [todos[i].id, todos[i].text])
+        else:
+            print("%d. [x] %s" % [todos[i].id, todos[i].text])
+        i += 1
+
+fn cmd_done(path: *char, id: i32):
+    let todos = load_todos(path)
+    let count: i32 = 0
+    while todos[count].id != 0:
+        count += 1
+    let i: i32 = 0
+    let found: i32 = 0
+    while i < count:
+        if todos[i].id == id:
+            todos[i].done = 1
+            found = 1
+            print("Done: " + todos[i].text)
+        i += 1
+    if found == 0:
+        print("Todo not found.")
+    save_todos(path, todos, count)
+
+fn cmd_remove(path: *char, id: i32):
+    let todos = load_todos(path)
+    let count: i32 = 0
+    while todos[count].id != 0:
+        count += 1
+    let new_todos = alloc[TodoItem](count)
+    let new_count: i32 = 0
+    let i: i32 = 0
+    while i < count:
+        if todos[i].id != id:
+            new_todos[new_count] = todos[i]
+            new_count += 1
+        else:
+            print("Removed: " + todos[i].text)
+        i += 1
+    save_todos(path, new_todos, new_count)
+
+fn main():
+    let path = "todos.txt"
+    let args_count = len(sys.argv)
+    if args_count < 2:
+        print("Usage: todo <command> [args]")
+        print("  add <text>  - Add a todo")
+        print("  list        - List all todos")
+        print("  done <id>   - Mark as done")
+        print("  remove <id> - Remove a todo")
+        return
+    let cmd = sys.argv[1]
+    if cmd == "add":
+        if args_count < 3:
+            print("Usage: todo add <text>")
+            return
+        cmd_add(path, sys.argv[2])
+    elif cmd == "list":
+        cmd_list(path)
+    elif cmd == "done":
+        if args_count < 3:
+            print("Usage: todo done <id>")
+            return
+        cmd_done(path, int(sys.argv[2]))
+    elif cmd == "remove":
+        if args_count < 3:
+            print("Usage: todo remove <id>")
+            return
+        cmd_remove(path, int(sys.argv[2]))
+    else:
+        print("Unknown command: " + cmd)

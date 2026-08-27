@@ -1,0 +1,43 @@
+# Spy Programming Language Engine & Compiler
+# Copyright (C) 2026 Valuvajjala Vivek Vardhan Rao
+#
+# Author: Valuvajjala Vivek Vardhan Rao
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+struct Token:
+    kind: *char
+    value: *char
+    line: i32
+    column: i32
+
+fn main():
+    let source: *char = "hello world"
+    print(len(source))
+    print(source[0])
+    print(source[1])
+
+    let count = 3
+    let tokens: *Token = alloc[Token](count)
+    print(tokens)
+
+    let ti = 0
+    tokens[ti].kind = "NUMBER"
+    tokens[ti].value = "42"
+    tokens[ti].line = 1
+    tokens[ti].column = 5
+    print(tokens[ti].kind)
+    print(tokens[ti].value)
+    print(tokens[ti].line)
+    print(tokens[ti].column)

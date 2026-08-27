@@ -1,0 +1,16 @@
+# Spy Programming Language Engine & Compiler
+# Copyright (C) 2026 Valuvajjala Vivek Vardhan Rao
+# Author: Valuvajjala Vivek Vardhan Rao
+#
+# GNU General Public License v3.0
+
+fn identity[T](val: i32) -> i32:
+    return val
+
+fn main() -> i32:
+    let ptr: *u32 = alloc[u32](4)
+    let val: i32 = 42
+    let res: i32 = identity(val)
+    printf("Generics Test Output: %d\n", res)
+    free(ptr)
+    return 0

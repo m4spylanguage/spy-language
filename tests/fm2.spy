@@ -1,0 +1,117 @@
+# Spy Programming Language Engine & Compiler
+# Copyright (C) 2026 Valuvajjala Vivek Vardhan Rao
+#
+# Author: Valuvajjala Vivek Vardhan Rao
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+import <spyui.h>
+
+fn on_back_clicked():
+    print("back")
+
+fn on_forward_clicked():
+    print("forward")
+
+fn on_up_clicked():
+    print("up")
+
+fn on_path_entered():
+    print("path entered")
+
+fn main():
+    let win = SWindow("Spy File Manager", 1150, 720)
+
+    # ===== TOOLBAR =====
+    let toolbar = SWidget()
+    toolbar.setBounds(0, 0, 1150, 50)
+    win.addWidget(toolbar)
+
+    let back_btn = SToolButton("←")
+    back_btn.setBounds(10, 8, 34, 34)
+    toolbar.addWidget(back_btn)
+
+    let fwd_btn = SToolButton("→")
+    fwd_btn.setBounds(50, 8, 34, 34)
+    toolbar.addWidget(fwd_btn)
+
+    let up_btn = SToolButton("↑")
+    up_btn.setBounds(90, 8, 34, 34)
+    toolbar.addWidget(up_btn)
+
+    let path_edit = SInput()
+    path_edit.setBounds(135, 8, 1000, 34)
+    path_edit.setPlaceholder("Path...")
+    toolbar.addWidget(path_edit)
+
+    # ===== SPLITTER =====
+    let splitter = SSplitter(1)
+    splitter.setBounds(0, 50, 1150, 670)
+    splitter.setHandleWidth(1)
+    win.addWidget(splitter)
+
+    # ===== SIDEBAR =====
+    let sidebar = SWidget()
+    sidebar.setBounds(0, 0, 230, 670)
+    splitter.addWidget(sidebar)
+
+    let places_label = SLabel("PLACES")
+    places_label.setBounds(10, 15, 210, 15)
+    sidebar.addWidget(places_label)
+
+    let home_btn = SToolButton("Home")
+    home_btn.setBounds(10, 35, 210, 32)
+    sidebar.addWidget(home_btn)
+
+    let desktop_btn = SToolButton("Desktop")
+    desktop_btn.setBounds(10, 70, 210, 32)
+    sidebar.addWidget(desktop_btn)
+
+    let downloads_btn = SToolButton("Downloads")
+    downloads_btn.setBounds(10, 105, 210, 32)
+    sidebar.addWidget(downloads_btn)
+
+    let documents_btn = SToolButton("Documents")
+    documents_btn.setBounds(10, 140, 210, 32)
+    sidebar.addWidget(documents_btn)
+
+    let devices_label = SLabel("DEVICES")
+    devices_label.setBounds(10, 180, 210, 15)
+    sidebar.addWidget(devices_label)
+
+    # ===== FILE VIEW =====
+    let tabs = STabs()
+    tabs.setBounds(230, 0, 920, 670)
+    win.addWidget(tabs)
+
+    let fs_model = SFileSystemModel()
+    fs_model.setRootPath("C:\\")
+
+    let file_list = SListView()
+    file_list.setBounds(0, 0, 920, 670)
+    file_list.setModel(fs_model)
+    file_list.setIconMode(48, 110, 10)
+    tabs.addTab(file_list, "Files")
+
+    # ===== CONNECTIONS =====
+    back_btn.clicked_signal.connect(on_back_clicked)
+    fwd_btn.clicked_signal.connect(on_forward_clicked)
+    up_btn.clicked_signal.connect(on_up_clicked)
+
+    # ===== STYLE =====
+    spyui_style_dark_neon()
+
+    # ===== SHOW =====
+    win.show()
+    win.run()

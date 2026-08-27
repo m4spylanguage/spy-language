@@ -1,0 +1,450 @@
+# Spy Programming Language Engine & Compiler
+# Copyright (C) 2026 Valuvajjala Vivek Vardhan Rao
+#
+# Author: Valuvajjala Vivek Vardhan Rao
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+struct Token:
+    kind: *char
+    value: *char
+    line: i32
+    column: i32
+
+fn is_whitespace(c):
+    return c == 32 or c == 9 or c == 10 or c == 13
+
+fn is_digit(c):
+    return c >= 48 and c <= 57
+
+fn is_alpha(c):
+    return c >= 65 and c <= 90 or c >= 97 and c <= 122 or c == 95
+
+fn is_alnum(c):
+    return is_digit(c) or is_alpha(c)
+
+fn is_keyword(word) -> i32:
+    if word == "fn":
+        return 1
+    elif word == "let":
+        return 1
+    elif word == "if":
+        return 1
+    elif word == "else":
+        return 1
+    elif word == "while":
+        return 1
+    elif word == "for":
+        return 1
+    elif word == "return":
+        return 1
+    elif word == "print":
+        return 1
+    elif word == "and":
+        return 1
+    elif word == "or":
+        return 1
+    elif word == "not":
+        return 1
+    elif word == "true":
+        return 1
+    elif word == "false":
+        return 1
+    elif word == "import":
+        return 1
+    elif word == "from":
+        return 1
+    elif word == "class":
+        return 1
+    elif word == "struct":
+        return 1
+    elif word == "enum":
+        return 1
+    elif word == "try":
+        return 1
+    elif word == "except":
+        return 1
+    elif word == "raise":
+        return 1
+    elif word == "break":
+        return 1
+    elif word == "continue":
+        return 1
+    elif word == "pass":
+        return 1
+    elif word == "match":
+        return 1
+    elif word == "none":
+        return 1
+    return 0
+
+fn token_kind(word) -> *char:
+    if word == "fn":
+        return "FN"
+    elif word == "let":
+        return "LET"
+    elif word == "if":
+        return "IF"
+    elif word == "else":
+        return "ELSE"
+    elif word == "while":
+        return "WHILE"
+    elif word == "for":
+        return "FOR"
+    elif word == "return":
+        return "RETURN"
+    elif word == "print":
+        return "PRINT"
+    elif word == "and":
+        return "AND"
+    elif word == "or":
+        return "OR"
+    elif word == "not":
+        return "NOT"
+    elif word == "true":
+        return "BOOL"
+    elif word == "false":
+        return "BOOL"
+    elif word == "import":
+        return "IMPORT"
+    elif word == "from":
+        return "FROM"
+    elif word == "class":
+        return "CLASS"
+    elif word == "struct":
+        return "STRUCT"
+    elif word == "enum":
+        return "ENUM"
+    elif word == "try":
+        return "TRY"
+    elif word == "except":
+        return "EXCEPT"
+    elif word == "raise":
+        return "RAISE"
+    elif word == "break":
+        return "BREAK"
+    elif word == "continue":
+        return "CONTINUE"
+    elif word == "pass":
+        return "PASS"
+    elif word == "match":
+        return "MATCH"
+    elif word == "none":
+        return "NONE"
+    return "IDENT"
+
+fn count_tokens(source: *char):
+    let n = len(source)
+    let i = 0
+    let count = 0
+    while i < n:
+        let c = source[i]
+        if is_whitespace(c):
+            i = i + 1
+        elif is_digit(c):
+            count = count + 1
+            while i < n and is_digit(source[i]):
+                i = i + 1
+        elif is_alpha(c):
+            count = count + 1
+            while i < n and is_alnum(source[i]):
+                i = i + 1
+        elif c == 34 or c == 39:
+            count = count + 1
+            i = i + 1
+            while i < n and source[i] != c:
+                i = i + 1
+            if i < n:
+                i = i + 1
+        elif c == 35:
+            while i < n and source[i] != 10:
+                i = i + 1
+        else:
+            count = count + 1
+            i = i + 1
+    return count
+
+fn tokenize(source: *char, tokens: *Token):
+    let n = len(source)
+    let i = 0
+    let line = 1
+    let col = 1
+    let ti = 0
+    let start = 0
+    let val: *char = ""
+
+    while i < n:
+        let c = source[i]
+        if c == 10:
+            line = line + 1
+            col = 1
+            i = i + 1
+        elif c == 9 or c == 13 or c == 32:
+            col = col + 1
+            i = i + 1
+        elif is_digit(c):
+            start = i
+            while i < n and is_digit(source[i]):
+                i = i + 1
+            val = substr(source, start, i - start)
+            tokens[ti].kind = "NUMBER"
+            tokens[ti].value = val
+            tokens[ti].line = line
+            tokens[ti].column = col
+            ti = ti + 1
+            col = i - start + col
+        elif is_alpha(c):
+            start = i
+            while i < n and is_alnum(source[i]):
+                i = i + 1
+            val = substr(source, start, i - start)
+            let kind = "IDENT"
+            if is_keyword(val):
+                kind = token_kind(val)
+            tokens[ti].kind = kind
+            tokens[ti].value = val
+            tokens[ti].line = line
+            tokens[ti].column = col
+            ti = ti + 1
+            col = i - start + col
+        elif c == 34 or c == 39:
+            start = i
+            let quote = c
+            i = i + 1
+            while i < n and source[i] != quote:
+                if source[i] == 10:
+                    line = line + 1
+                i = i + 1
+            if i < n:
+                i = i + 1
+            val = substr(source, start, i - start)
+            tokens[ti].kind = "STRING"
+            tokens[ti].value = val
+            tokens[ti].line = line
+            tokens[ti].column = col
+            ti = ti + 1
+            col = i - start + col
+        elif c == 35:
+            while i < n and source[i] != 10:
+                i = i + 1
+        elif c == 43:
+            tokens[ti].kind = "PLUS"
+            tokens[ti].value = "+"
+            tokens[ti].line = line
+            tokens[ti].column = col
+            ti = ti + 1
+            i = i + 1
+            col = col + 1
+        elif c == 45:
+            if i + 1 < n and source[i + 1] == 62:
+                tokens[ti].kind = "RARROW"
+                tokens[ti].value = "->"
+                tokens[ti].line = line
+                tokens[ti].column = col
+                ti = ti + 1
+                i = i + 2
+                col = col + 2
+            else:
+                tokens[ti].kind = "MINUS"
+                tokens[ti].value = "-"
+                tokens[ti].line = line
+                tokens[ti].column = col
+                ti = ti + 1
+                i = i + 1
+                col = col + 1
+        elif c == 42:
+            tokens[ti].kind = "STAR"
+            tokens[ti].value = "*"
+            tokens[ti].line = line
+            tokens[ti].column = col
+            ti = ti + 1
+            i = i + 1
+            col = col + 1
+        elif c == 47:
+            tokens[ti].kind = "SLASH"
+            tokens[ti].value = "/"
+            tokens[ti].line = line
+            tokens[ti].column = col
+            ti = ti + 1
+            i = i + 1
+            col = col + 1
+        elif c == 61:
+            if i + 1 < n and source[i + 1] == 61:
+                tokens[ti].kind = "EQ_EQ"
+                tokens[ti].value = "=="
+                tokens[ti].line = line
+                tokens[ti].column = col
+                ti = ti + 1
+                i = i + 2
+                col = col + 2
+            else:
+                tokens[ti].kind = "EQ"
+                tokens[ti].value = "="
+                tokens[ti].line = line
+                tokens[ti].column = col
+                ti = ti + 1
+                i = i + 1
+                col = col + 1
+        elif c == 33:
+            if i + 1 < n and source[i + 1] == 61:
+                tokens[ti].kind = "BANG_EQ"
+                tokens[ti].value = "!="
+                tokens[ti].line = line
+                tokens[ti].column = col
+                ti = ti + 1
+                i = i + 2
+                col = col + 2
+            else:
+                tokens[ti].kind = "BANG"
+                tokens[ti].value = "!"
+                tokens[ti].line = line
+                tokens[ti].column = col
+                ti = ti + 1
+                i = i + 1
+                col = col + 1
+        elif c == 60:
+            if i + 1 < n and source[i + 1] == 61:
+                tokens[ti].kind = "LT_EQ"
+                tokens[ti].value = "<="
+                tokens[ti].line = line
+                tokens[ti].column = col
+                ti = ti + 1
+                i = i + 2
+                col = col + 2
+            else:
+                tokens[ti].kind = "LT"
+                tokens[ti].value = "<"
+                tokens[ti].line = line
+                tokens[ti].column = col
+                ti = ti + 1
+                i = i + 1
+                col = col + 1
+        elif c == 62:
+            if i + 1 < n and source[i + 1] == 61:
+                tokens[ti].kind = "GT_EQ"
+                tokens[ti].value = ">="
+                tokens[ti].line = line
+                tokens[ti].column = col
+                ti = ti + 1
+                i = i + 2
+                col = col + 2
+            else:
+                tokens[ti].kind = "GT"
+                tokens[ti].value = ">"
+                tokens[ti].line = line
+                tokens[ti].column = col
+                ti = ti + 1
+                i = i + 1
+                col = col + 1
+        elif c == 40:
+            tokens[ti].kind = "LPAREN"
+            tokens[ti].value = "("
+            tokens[ti].line = line
+            tokens[ti].column = col
+            ti = ti + 1
+            i = i + 1
+            col = col + 1
+        elif c == 41:
+            tokens[ti].kind = "RPAREN"
+            tokens[ti].value = ")"
+            tokens[ti].line = line
+            tokens[ti].column = col
+            ti = ti + 1
+            i = i + 1
+            col = col + 1
+        elif c == 91:
+            tokens[ti].kind = "LBRACKET"
+            tokens[ti].value = "["
+            tokens[ti].line = line
+            tokens[ti].column = col
+            ti = ti + 1
+            i = i + 1
+            col = col + 1
+        elif c == 93:
+            tokens[ti].kind = "RBRACKET"
+            tokens[ti].value = "]"
+            tokens[ti].line = line
+            tokens[ti].column = col
+            ti = ti + 1
+            i = i + 1
+            col = col + 1
+        elif c == 123:
+            tokens[ti].kind = "LBRACE"
+            tokens[ti].value = "{"
+            tokens[ti].line = line
+            tokens[ti].column = col
+            ti = ti + 1
+            i = i + 1
+            col = col + 1
+        elif c == 125:
+            tokens[ti].kind = "RBRACE"
+            tokens[ti].value = "}"
+            tokens[ti].line = line
+            tokens[ti].column = col
+            ti = ti + 1
+            i = i + 1
+            col = col + 1
+        elif c == 44:
+            tokens[ti].kind = "COMMA"
+            tokens[ti].value = ","
+            tokens[ti].line = line
+            tokens[ti].column = col
+            ti = ti + 1
+            i = i + 1
+            col = col + 1
+        elif c == 46:
+            tokens[ti].kind = "DOT"
+            tokens[ti].value = "."
+            tokens[ti].line = line
+            tokens[ti].column = col
+            ti = ti + 1
+            i = i + 1
+            col = col + 1
+        elif c == 58:
+            tokens[ti].kind = "COLON"
+            tokens[ti].value = ":"
+            tokens[ti].line = line
+            tokens[ti].column = col
+            ti = ti + 1
+            i = i + 1
+            col = col + 1
+        elif c == 59:
+            tokens[ti].kind = "SEMICOLON"
+            tokens[ti].value = ";"
+            tokens[ti].line = line
+            tokens[ti].column = col
+            ti = ti + 1
+            i = i + 1
+            col = col + 1
+        else:
+            tokens[ti].kind = "CHAR"
+            let val = chr(c)
+            tokens[ti].value = val
+            tokens[ti].line = line
+            tokens[ti].column = col
+            ti = ti + 1
+            i = i + 1
+            col = col + 1
+
+fn main():
+    let source = read_file("self_lexer.spy")
+    let count = count_tokens(source)
+    let tokens: *Token = alloc[Token](count)
+    tokenize(source, tokens)
+    print(count)
+    print("--- tokens ---")
+    let i = 0
+    while i < count:
+        print(tokens[i].kind + ": " + tokens[i].value + " (" + str(tokens[i].line) + ":" + str(tokens[i].column) + ")")
+        i = i + 1

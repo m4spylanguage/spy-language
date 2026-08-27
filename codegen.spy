@@ -1,0 +1,1741 @@
+# Spy Programming Language Engine & Compiler
+# Copyright (C) 2026 Valuvajjala Vivek Vardhan Rao
+#
+# Author: Valuvajjala Vivek Vardhan Rao
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+struct Token:
+    kind: *char
+    value: *char
+    line: i32
+    column: i32
+
+struct ASTNode:
+    kind: *char
+    value: *char
+    op: *char
+    line: i32
+    column: i32
+    first_child: i32
+    next_sibling: i32
+
+struct NodeStore:
+    capacity: i32
+    count: i32
+    nodes: *ASTNode
+
+struct ParserState:
+    tokens: *Token
+    count: i32
+    pos: i32
+
+struct CgState:
+    declared: **char
+    declared_count: i32
+    string_vars: **char
+    string_count: i32
+    ptr_vars: **char
+    ptr_count: i32
+    fn_ret_types: **char
+    fn_ret_names: **char
+    fn_ret_count: i32
+    struct_names: **char
+    struct_count: i32
+    struct_fields: **char
+    struct_field_count: i32
+    current_fn: *char
+    has_return: i32
+
+fn is_digit(c):
+    return c >= 48 and c <= 57
+
+fn is_alpha(c):
+    return c >= 65 and c <= 90 or c >= 97 and c <= 122 or c == 95
+
+fn is_alnum(c):
+    return is_digit(c) or is_alpha(c)
+
+fn is_keyword(word: *char) -> i32:
+    if word == "fn":
+        return 1
+    elif word == "let":
+        return 1
+    elif word == "if":
+        return 1
+    elif word == "elif":
+        return 1
+    elif word == "else":
+        return 1
+    elif word == "while":
+        return 1
+    elif word == "for":
+        return 1
+    elif word == "return":
+        return 1
+    elif word == "print":
+        return 1
+    elif word == "and":
+        return 1
+    elif word == "or":
+        return 1
+    elif word == "not":
+        return 1
+    elif word == "true":
+        return 1
+    elif word == "false":
+        return 1
+    elif word == "struct":
+        return 1
+    elif word == "break":
+        return 1
+    elif word == "continue":
+        return 1
+    elif word == "pass":
+        return 1
+    elif word == "import":
+        return 1
+    elif word == "from":
+        return 1
+    elif word == "match":
+        return 1
+    elif word == "none":
+        return 1
+    elif word == "nil":
+        return 1
+    return 0
+
+fn token_kind_str(word: *char) -> *char:
+    if word == "fn":
+        return "FN"
+    elif word == "let":
+        return "LET"
+    elif word == "if":
+        return "IF"
+    elif word == "elif":
+        return "ELIF"
+    elif word == "else":
+        return "ELSE"
+    elif word == "while":
+        return "WHILE"
+    elif word == "for":
+        return "FOR"
+    elif word == "return":
+        return "RETURN"
+    elif word == "print":
+        return "PRINT"
+    elif word == "and":
+        return "AND"
+    elif word == "or":
+        return "OR"
+    elif word == "not":
+        return "NOT"
+    elif word == "true":
+        return "TRUE"
+    elif word == "false":
+        return "FALSE"
+    elif word == "struct":
+        return "STRUCT"
+    elif word == "break":
+        return "BREAK"
+    elif word == "continue":
+        return "CONTINUE"
+    elif word == "pass":
+        return "PASS"
+    elif word == "import":
+        return "IMPORT"
+    elif word == "from":
+        return "FROM"
+    elif word == "match":
+        return "MATCH"
+    elif word == "none":
+        return "NONE"
+    elif word == "nil":
+        return "NIL"
+    return "IDENT"
+
+fn lex(source: *char, tokens: *Token):
+    let n = len(source)
+    let i = 0
+    let line = 1
+    let col = 1
+    let ti = 0
+    let indent_stack: *i32 = alloc[i32](200)
+    let indent_top = 0
+    indent_stack[0] = 0
+    let at_line_start = 1
+    let indent = 0
+    let si = 0
+    let blank = 0
+    let current = 0
+    let start = 0
+    let val = ""
+    let kind = ""
+    let quote = 0
+    let c = 0
+    while i < n:
+        if at_line_start:
+            indent = 0
+            si = i
+            while si < n:
+                if source[si] == 32:
+                    indent = indent + 1
+                    si = si + 1
+                else:
+                    if source[si] == 9:
+                        indent = indent + 4
+                        si = si + 1
+                    else:
+                        break
+            blank = 0
+            if si >= n or source[si] == 10 or source[si] == 13 or source[si] == 35:
+                blank = 1
+            if blank:
+                i = si
+                while i < n and source[i] != 10:
+                    i = i + 1
+                if i < n and source[i] == 10:
+                    i = i + 1
+                line = line + 1
+                col = 1
+                if i >= n:
+                    current = indent_stack[indent_top]
+                    while indent_top > 0:
+                        indent_top = indent_top - 1
+                        tokens[ti].kind = "DEDENT"
+                        tokens[ti].value = ""
+                        tokens[ti].line = line
+                        tokens[ti].column = 1
+                        ti = ti + 1
+                    return ti
+                continue
+            i = si
+            col = indent + 1
+            current = indent_stack[indent_top]
+            if indent > current:
+                indent_top = indent_top + 1
+                indent_stack[indent_top] = indent
+                tokens[ti].kind = "INDENT"
+                tokens[ti].value = ""
+                tokens[ti].line = line
+                tokens[ti].column = col
+                ti = ti + 1
+            else:
+                if indent < current:
+                    while indent_top >= 0 and indent_stack[indent_top] > indent:
+                        indent_top = indent_top - 1
+                        tokens[ti].kind = "DEDENT"
+                        tokens[ti].value = ""
+                        tokens[ti].line = line
+                        tokens[ti].column = col
+                        ti = ti + 1
+            at_line_start = 0
+        if i >= n:
+            break
+        c = source[i]
+        if c == 10:
+            tokens[ti].kind = "NEWLINE"
+            tokens[ti].value = ""
+            tokens[ti].line = line
+            tokens[ti].column = col
+            ti = ti + 1
+            line = line + 1
+            col = 1
+            i = i + 1
+            at_line_start = 1
+        else:
+            if c == 32 or c == 9 or c == 13:
+                col = col + 1
+                i = i + 1
+            else:
+                if c == 35:
+                    while i < n and source[i] != 10:
+                        i = i + 1
+                else:
+                    if is_digit(c):
+                        start = i
+                        while i < n and is_digit(source[i]):
+                            i = i + 1
+                        val = substr(source, start, i - start)
+                        tokens[ti].kind = "NUMBER"
+                        tokens[ti].value = val
+                        tokens[ti].line = line
+                        tokens[ti].column = col
+                        ti = ti + 1
+                        col = i - start + col
+                    else:
+                        if is_alpha(c):
+                            start = i
+                            while i < n and is_alnum(source[i]):
+                                i = i + 1
+                            val = substr(source, start, i - start)
+                            kind = "IDENT"
+                            if is_keyword(val):
+                                kind = token_kind_str(val)
+                            tokens[ti].kind = kind
+                            tokens[ti].value = val
+                            tokens[ti].line = line
+                            tokens[ti].column = col
+                            ti = ti + 1
+                            col = i - start + col
+                        else:
+                            if c == 34 or c == 39:
+                                start = i
+                                quote = c
+                                i = i + 1
+                                while i < n and source[i] != quote:
+                                    if source[i] == 10:
+                                        line = line + 1
+                                    i = i + 1
+                                if i < n:
+                                    i = i + 1
+                                val = substr(source, start, i - start)
+                                tokens[ti].kind = "STRING"
+                                tokens[ti].value = val
+                                tokens[ti].line = line
+                                tokens[ti].column = col
+                                ti = ti + 1
+                                col = i - start + col
+                            else:
+                                if c == 43:
+                                    tokens[ti].kind = "PLUS"
+                                    tokens[ti].value = "+"
+                                    tokens[ti].line = line
+                                    tokens[ti].column = col
+                                    ti = ti + 1
+                                    i = i + 1
+                                    col = col + 1
+                                else:
+                                    if c == 45:
+                                        if i + 1 < n and source[i + 1] == 62:
+                                            tokens[ti].kind = "RARROW"
+                                            tokens[ti].value = "->"
+                                            tokens[ti].line = line
+                                            tokens[ti].column = col
+                                            ti = ti + 1
+                                            i = i + 2
+                                            col = col + 2
+                                        else:
+                                            tokens[ti].kind = "MINUS"
+                                            tokens[ti].value = "-"
+                                            tokens[ti].line = line
+                                            tokens[ti].column = col
+                                            ti = ti + 1
+                                            i = i + 1
+                                            col = col + 1
+                                    else:
+                                        if c == 42:
+                                            tokens[ti].kind = "STAR"
+                                            tokens[ti].value = "*"
+                                            tokens[ti].line = line
+                                            tokens[ti].column = col
+                                            ti = ti + 1
+                                            i = i + 1
+                                            col = col + 1
+                                        else:
+                                            if c == 47:
+                                                tokens[ti].kind = "SLASH"
+                                                tokens[ti].value = "/"
+                                                tokens[ti].line = line
+                                                tokens[ti].column = col
+                                                ti = ti + 1
+                                                i = i + 1
+                                                col = col + 1
+                                            else:
+                                                if c == 61:
+                                                    if i + 1 < n and source[i + 1] == 61:
+                                                        tokens[ti].kind = "EQ_EQ"
+                                                        tokens[ti].value = "=="
+                                                        tokens[ti].line = line
+                                                        tokens[ti].column = col
+                                                        ti = ti + 1
+                                                        i = i + 2
+                                                        col = col + 2
+                                                    else:
+                                                        tokens[ti].kind = "EQ"
+                                                        tokens[ti].value = "="
+                                                        tokens[ti].line = line
+                                                        tokens[ti].column = col
+                                                        ti = ti + 1
+                                                        i = i + 1
+                                                        col = col + 1
+                                                else:
+                                                    if c == 33:
+                                                        if i + 1 < n and source[i + 1] == 61:
+                                                            tokens[ti].kind = "BANG_EQ"
+                                                            tokens[ti].value = "!="
+                                                            tokens[ti].line = line
+                                                            tokens[ti].column = col
+                                                            ti = ti + 1
+                                                            i = i + 2
+                                                            col = col + 2
+                                                        else:
+                                                            tokens[ti].kind = "BANG"
+                                                            tokens[ti].value = "!"
+                                                            tokens[ti].line = line
+                                                            tokens[ti].column = col
+                                                            ti = ti + 1
+                                                            i = i + 1
+                                                            col = col + 1
+                                                    else:
+                                                        if c == 60:
+                                                            if i + 1 < n and source[i + 1] == 61:
+                                                                tokens[ti].kind = "LT_EQ"
+                                                                tokens[ti].value = "<="
+                                                                tokens[ti].line = line
+                                                                tokens[ti].column = col
+                                                                ti = ti + 1
+                                                                i = i + 2
+                                                                col = col + 2
+                                                            else:
+                                                                tokens[ti].kind = "LT"
+                                                                tokens[ti].value = "<"
+                                                                tokens[ti].line = line
+                                                                tokens[ti].column = col
+                                                                ti = ti + 1
+                                                                i = i + 1
+                                                                col = col + 1
+                                                        else:
+                                                            if c == 62:
+                                                                if i + 1 < n and source[i + 1] == 61:
+                                                                    tokens[ti].kind = "GT_EQ"
+                                                                    tokens[ti].value = ">="
+                                                                    tokens[ti].line = line
+                                                                    tokens[ti].column = col
+                                                                    ti = ti + 1
+                                                                    i = i + 2
+                                                                    col = col + 2
+                                                                else:
+                                                                    tokens[ti].kind = "GT"
+                                                                    tokens[ti].value = ">"
+                                                                    tokens[ti].line = line
+                                                                    tokens[ti].column = col
+                                                                    ti = ti + 1
+                                                                    i = i + 1
+                                                                    col = col + 1
+                                                            else:
+                                                                if c == 40:
+                                                                    tokens[ti].kind = "LPAREN"
+                                                                    tokens[ti].value = "("
+                                                                    tokens[ti].line = line
+                                                                    tokens[ti].column = col
+                                                                    ti = ti + 1
+                                                                    i = i + 1
+                                                                    col = col + 1
+                                                                else:
+                                                                    if c == 41:
+                                                                        tokens[ti].kind = "RPAREN"
+                                                                        tokens[ti].value = ")"
+                                                                        tokens[ti].line = line
+                                                                        tokens[ti].column = col
+                                                                        ti = ti + 1
+                                                                        i = i + 1
+                                                                        col = col + 1
+                                                                    else:
+                                                                        if c == 91:
+                                                                            tokens[ti].kind = "LBRACKET"
+                                                                            tokens[ti].value = "["
+                                                                            tokens[ti].line = line
+                                                                            tokens[ti].column = col
+                                                                            ti = ti + 1
+                                                                            i = i + 1
+                                                                            col = col + 1
+                                                                        else:
+                                                                            if c == 93:
+                                                                                tokens[ti].kind = "RBRACKET"
+                                                                                tokens[ti].value = "]"
+                                                                                tokens[ti].line = line
+                                                                                tokens[ti].column = col
+                                                                                ti = ti + 1
+                                                                                i = i + 1
+                                                                                col = col + 1
+                                                                            else:
+                                                                                if c == 123:
+                                                                                    tokens[ti].kind = "LBRACE"
+                                                                                    tokens[ti].value = "{"
+                                                                                    tokens[ti].line = line
+                                                                                    tokens[ti].column = col
+                                                                                    ti = ti + 1
+                                                                                    i = i + 1
+                                                                                    col = col + 1
+                                                                                else:
+                                                                                    if c == 125:
+                                                                                        tokens[ti].kind = "RBRACE"
+                                                                                        tokens[ti].value = "}"
+                                                                                        tokens[ti].line = line
+                                                                                        tokens[ti].column = col
+                                                                                        ti = ti + 1
+                                                                                        i = i + 1
+                                                                                        col = col + 1
+                                                                                    else:
+                                                                                        if c == 44:
+                                                                                            tokens[ti].kind = "COMMA"
+                                                                                            tokens[ti].value = ","
+                                                                                            tokens[ti].line = line
+                                                                                            tokens[ti].column = col
+                                                                                            ti = ti + 1
+                                                                                            i = i + 1
+                                                                                            col = col + 1
+                                                                                        else:
+                                                                                            if c == 46:
+                                                                                                tokens[ti].kind = "DOT"
+                                                                                                tokens[ti].value = "."
+                                                                                                tokens[ti].line = line
+                                                                                                tokens[ti].column = col
+                                                                                                ti = ti + 1
+                                                                                                i = i + 1
+                                                                                                col = col + 1
+                                                                                            else:
+                                                                                                if c == 58:
+                                                                                                    tokens[ti].kind = "COLON"
+                                                                                                    tokens[ti].value = ":"
+                                                                                                    tokens[ti].line = line
+                                                                                                    tokens[ti].column = col
+                                                                                                    ti = ti + 1
+                                                                                                    i = i + 1
+                                                                                                    col = col + 1
+                                                                                                else:
+                                                                                                    if c == 37:
+                                                                                                        tokens[ti].kind = "PERCENT"
+                                                                                                        tokens[ti].value = "%"
+                                                                                                        tokens[ti].line = line
+                                                                                                        tokens[ti].column = col
+                                                                                                        ti = ti + 1
+                                                                                                        i = i + 1
+                                                                                                        col = col + 1
+                                                                                                    else:
+                                                                                                        if c == 38:
+                                                                                                            tokens[ti].kind = "AMPERSAND"
+                                                                                                            tokens[ti].value = "&"
+                                                                                                            tokens[ti].line = line
+                                                                                                            tokens[ti].column = col
+                                                                                                            ti = ti + 1
+                                                                                                            i = i + 1
+                                                                                                            col = col + 1
+                                                                                                        else:
+                                                                                                            if c == 124:
+                                                                                                                tokens[ti].kind = "PIPE"
+                                                                                                                tokens[ti].value = "|"
+                                                                                                                tokens[ti].line = line
+                                                                                                                tokens[ti].column = col
+                                                                                                                ti = ti + 1
+                                                                                                                i = i + 1
+                                                                                                                col = col + 1
+                                                                                                            else:
+                                                                                                                i = i + 1
+                                                                                                                col = col + 1
+    current = indent_stack[indent_top]
+    while indent_top > 0:
+        indent_top = indent_top - 1
+        tokens[ti].kind = "DEDENT"
+        tokens[ti].value = ""
+        tokens[ti].line = line
+        tokens[ti].column = col
+        ti = ti + 1
+    return ti
+
+fn new_node(st: *NodeStore, kind, value, op, line, col):
+    let idx = st.count
+    st.count = idx + 1
+    if idx >= st.capacity:
+        let new_cap = st.capacity * 2
+        if st.capacity == 0: new_cap = 256
+        st.nodes = realloc(st.nodes, new_cap, ASTNode)
+        st.capacity = new_cap
+    st.nodes[idx].kind = kind
+    st.nodes[idx].value = value
+    st.nodes[idx].op = op
+    st.nodes[idx].line = line
+    st.nodes[idx].column = col
+    st.nodes[idx].first_child = -1
+    st.nodes[idx].next_sibling = -1
+    return idx
+
+fn add_child(st: *NodeStore, parent_idx: i32, child_idx: i32):
+    if child_idx < 0:
+        return
+    if st.nodes[parent_idx].first_child == -1:
+        st.nodes[parent_idx].first_child = child_idx
+        return
+    let last = st.nodes[parent_idx].first_child
+    while st.nodes[last].next_sibling >= 0:
+        last = st.nodes[last].next_sibling
+    st.nodes[last].next_sibling = child_idx
+
+fn peek_tok(st: *ParserState) -> Token:
+    return st.tokens[st.pos]
+
+fn advance_tok(st: *ParserState):
+    st.pos = st.pos + 1
+
+fn check_tok(st: *ParserState, kind: *char):
+    if st.pos >= st.count:
+        return 0
+    return st.tokens[st.pos].kind == kind
+
+fn expect_tok(st: *ParserState, kind: *char) -> i32:
+    if st.pos < st.count and st.tokens[st.pos].kind == kind:
+        advance_tok(st)
+        return 1
+    if st.pos < st.count:
+        print("Parse error at " + str(st.tokens[st.pos].line) + ":" + str(st.tokens[st.pos].column))
+        print("  expected " + kind + ", got " + st.tokens[st.pos].kind)
+    else:
+        print("Parse error: expected " + kind + ", got EOF")
+    return 0
+
+fn skip_nls(st: *ParserState):
+    while check_tok(st, "NEWLINE"):
+        advance_tok(st)
+
+fn parse_type(st: *ParserState, ns: *NodeStore):
+    let tok = peek_tok(st)
+    if tok.kind == "STAR":
+        st.pos = st.pos + 1
+        let base_node = parse_type(st, ns)
+        let node = new_node(ns, "PTR_TYPE", "", "", tok.line, tok.column)
+        add_child(ns, node, base_node)
+        return node
+    st.pos = st.pos + 1
+    return new_node(ns, "TYPE", tok.value, "", tok.line, tok.column)
+
+fn parse_primary(st: *ParserState, ns: *NodeStore):
+    let tok = peek_tok(st)
+    if check_tok(st, "NUMBER"):
+        advance_tok(st)
+        return new_node(ns, "INT", tok.value, "", tok.line, tok.column)
+    if check_tok(st, "STRING"):
+        advance_tok(st)
+        return new_node(ns, "STRING", tok.value, "", tok.line, tok.column)
+    if check_tok(st, "TRUE"):
+        advance_tok(st)
+        return new_node(ns, "BOOL", "true", "", tok.line, tok.column)
+    if check_tok(st, "FALSE"):
+        advance_tok(st)
+        return new_node(ns, "BOOL", "false", "", tok.line, tok.column)
+    if check_tok(st, "NIL"):
+        advance_tok(st)
+        return new_node(ns, "NONE", "", "", tok.line, tok.column)
+    if check_tok(st, "IDENT"):
+        advance_tok(st)
+        let node = new_node(ns, "IDENT", tok.value, "", tok.line, tok.column)
+        while check_tok(st, "LPAREN") or check_tok(st, "LBRACKET") or check_tok(st, "DOT"):
+            if check_tok(st, "LPAREN"):
+                advance_tok(st)
+                let call_node = new_node(ns, "CALL", "", "", tok.line, tok.column)
+                add_child(ns, call_node, node)
+                if not check_tok(st, "RPAREN"):
+                    let first = 1
+                    while not check_tok(st, "RPAREN"):
+                        if not first:
+                            expect_tok(st, "COMMA")
+                        first = 0
+                        let arg = parse_expression(st, ns)
+                        add_child(ns, call_node, arg)
+                expect_tok(st, "RPAREN")
+                node = call_node
+            else:
+                if check_tok(st, "LBRACKET"):
+                    advance_tok(st)
+                    let ix_node = new_node(ns, "INDEX", "", "", tok.line, tok.column)
+                    add_child(ns, ix_node, node)
+                    let idx_expr = parse_expression(st, ns)
+                    add_child(ns, ix_node, idx_expr)
+                    expect_tok(st, "RBRACKET")
+                    node = ix_node
+                else:
+                    if check_tok(st, "DOT"):
+                        advance_tok(st)
+                        let member = peek_tok(st)
+                        expect_tok(st, "IDENT")
+                        let m_node = new_node(ns, "MEMBER", member.value, "", tok.line, tok.column)
+                        add_child(ns, m_node, node)
+                        node = m_node
+        return node
+    if check_tok(st, "MINUS"):
+        advance_tok(st)
+        let m_op = peek_tok(st)
+        let m_node = new_node(ns, "UNARY", "", "-", tok.line, tok.column)
+        let operand = parse_primary(st, ns)
+        add_child(ns, m_node, operand)
+        return m_node
+    if check_tok(st, "BANG"):
+        advance_tok(st)
+        let n_op = peek_tok(st)
+        let n_node = new_node(ns, "UNARY", "", "!", tok.line, tok.column)
+        let operand = parse_primary(st, ns)
+        add_child(ns, n_node, operand)
+        return n_node
+    if check_tok(st, "NOT"):
+        advance_tok(st)
+        let not_node = new_node(ns, "UNARY", "", "not", tok.line, tok.column)
+        let operand = parse_primary(st, ns)
+        add_child(ns, not_node, operand)
+        return not_node
+    if check_tok(st, "LPAREN"):
+        advance_tok(st)
+        let expr = parse_expression(st, ns)
+        expect_tok(st, "RPAREN")
+        return expr
+    print("Parse error at " + str(tok.line) + ":" + str(tok.column) + ": unexpected token " + tok.kind)
+    advance_tok(st)
+    return -1
+
+fn parse_mul_div(st: *ParserState, ns: *NodeStore):
+    let left = parse_primary(st, ns)
+    while check_tok(st, "STAR") or check_tok(st, "SLASH") or check_tok(st, "PERCENT"):
+        let op_tok = peek_tok(st)
+        advance_tok(st)
+        let right = parse_primary(st, ns)
+        let bin = new_node(ns, "BINOP", "", op_tok.value, op_tok.line, op_tok.column)
+        add_child(ns, bin, left)
+        add_child(ns, bin, right)
+        left = bin
+    return left
+
+fn parse_add_sub(st: *ParserState, ns: *NodeStore):
+    let left = parse_mul_div(st, ns)
+    while check_tok(st, "PLUS") or check_tok(st, "MINUS"):
+        let op_tok = peek_tok(st)
+        advance_tok(st)
+        let right = parse_mul_div(st, ns)
+        let bin = new_node(ns, "BINOP", "", op_tok.value, op_tok.line, op_tok.column)
+        add_child(ns, bin, left)
+        add_child(ns, bin, right)
+        left = bin
+    return left
+
+fn parse_comparison(st: *ParserState, ns: *NodeStore):
+    let left = parse_add_sub(st, ns)
+    while check_tok(st, "EQ_EQ") or check_tok(st, "BANG_EQ") or check_tok(st, "LT") or check_tok(st, "GT") or check_tok(st, "LT_EQ") or check_tok(st, "GT_EQ"):
+        let op_tok = peek_tok(st)
+        advance_tok(st)
+        let right = parse_add_sub(st, ns)
+        let bin = new_node(ns, "BINOP", "", op_tok.value, op_tok.line, op_tok.column)
+        add_child(ns, bin, left)
+        add_child(ns, bin, right)
+        left = bin
+    return left
+
+fn parse_and_or(st: *ParserState, ns: *NodeStore):
+    let left = parse_comparison(st, ns)
+    while check_tok(st, "AND") or check_tok(st, "OR"):
+        let op_tok = peek_tok(st)
+        advance_tok(st)
+        let right = parse_comparison(st, ns)
+        let bin = new_node(ns, "BINOP", "", op_tok.value, op_tok.line, op_tok.column)
+        add_child(ns, bin, left)
+        add_child(ns, bin, right)
+        left = bin
+    return left
+
+fn parse_expression(st: *ParserState, ns: *NodeStore):
+    return parse_and_or(st, ns)
+
+fn parse_block(st: *ParserState, ns: *NodeStore):
+    let first = -1
+    let last = -1
+    skip_nls(st)
+    if not expect_tok(st, "INDENT"):
+        return -1
+    while not check_tok(st, "DEDENT") and st.pos < st.count:
+        skip_nls(st)
+        if check_tok(st, "DEDENT") or check_tok(st, "EOF"):
+            break
+        let stmt = parse_statement(st, ns)
+        if stmt >= 0:
+            if first < 0:
+                first = stmt
+                last = stmt
+            else:
+                ns.nodes[last].next_sibling = stmt
+                last = stmt
+    expect_tok(st, "DEDENT")
+    return first
+
+fn parse_statement(st: *ParserState, ns: *NodeStore):
+    skip_nls(st)
+    if st.pos >= st.count:
+        return -1
+    let tok = peek_tok(st)
+    if tok.kind == "STRUCT":
+        advance_tok(st)
+        let name_tok = peek_tok(st)
+        expect_tok(st, "IDENT")
+        expect_tok(st, "COLON")
+        let struct_node = new_node(ns, "STRUCT", name_tok.value, "", name_tok.line, name_tok.column)
+        skip_nls(st)
+        expect_tok(st, "INDENT")
+        while not check_tok(st, "DEDENT") and st.pos < st.count:
+            let ftok = peek_tok(st)
+            expect_tok(st, "IDENT")
+            expect_tok(st, "COLON")
+            let field_node = new_node(ns, "FIELD", ftok.value, "", ftok.line, ftok.column)
+            let type_node = parse_type(st, ns)
+            if type_node >= 0:
+                add_child(ns, field_node, type_node)
+            add_child(ns, struct_node, field_node)
+            skip_nls(st)
+        expect_tok(st, "DEDENT")
+        return struct_node
+    if tok.kind == "FN":
+        advance_tok(st)
+        let name_tok = peek_tok(st)
+        expect_tok(st, "IDENT")
+        let fn_node = new_node(ns, "FN", name_tok.value, "", name_tok.line, name_tok.column)
+        expect_tok(st, "LPAREN")
+        if not check_tok(st, "RPAREN"):
+            let first_param = 1
+            while not check_tok(st, "RPAREN"):
+                if not first_param:
+                    expect_tok(st, "COMMA")
+                first_param = 0
+                let ptok = peek_tok(st)
+                expect_tok(st, "IDENT")
+                let param_node = new_node(ns, "PARAM", ptok.value, "", ptok.line, ptok.column)
+                if check_tok(st, "COLON"):
+                    advance_tok(st)
+                    let ptype_node = parse_type(st, ns)
+                    if ptype_node >= 0:
+                        add_child(ns, param_node, ptype_node)
+                add_child(ns, fn_node, param_node)
+        expect_tok(st, "RPAREN")
+        if check_tok(st, "RARROW"):
+            advance_tok(st)
+            let rtype_node = parse_type(st, ns)
+            if rtype_node >= 0:
+                add_child(ns, fn_node, rtype_node)
+        expect_tok(st, "COLON")
+        let body = parse_block(st, ns)
+        if body >= 0:
+            add_child(ns, fn_node, body)
+        return fn_node
+    if tok.kind == "LET":
+        advance_tok(st)
+        let name_tok = peek_tok(st)
+        expect_tok(st, "IDENT")
+        let let_node = new_node(ns, "LET", name_tok.value, "", name_tok.line, name_tok.column)
+        if check_tok(st, "COLON"):
+            advance_tok(st)
+            let type_node = parse_type(st, ns)
+            if type_node >= 0:
+                add_child(ns, let_node, type_node)
+        if check_tok(st, "EQ"):
+            advance_tok(st)
+            let init = parse_expression(st, ns)
+            add_child(ns, let_node, init)
+        return let_node
+    if tok.kind == "RETURN":
+        advance_tok(st)
+        let ret_node = new_node(ns, "RETURN", "", "", tok.line, tok.column)
+        skip_nls(st)
+        if not check_tok(st, "NEWLINE") and not check_tok(st, "DEDENT") and st.pos < st.count:
+            let val = parse_expression(st, ns)
+            add_child(ns, ret_node, val)
+        return ret_node
+    if tok.kind == "IF":
+        advance_tok(st)
+        let if_node = new_node(ns, "IF", "", "", tok.line, tok.column)
+        let cond = parse_expression(st, ns)
+        add_child(ns, if_node, cond)
+        expect_tok(st, "COLON")
+        let body = parse_block(st, ns)
+        if body >= 0:
+            add_child(ns, if_node, body)
+        while check_tok(st, "ELIF"):
+            advance_tok(st)
+            let elif_node = new_node(ns, "ELIF", "", "", tok.line, tok.column)
+            let elif_cond = parse_expression(st, ns)
+            add_child(ns, elif_node, elif_cond)
+            expect_tok(st, "COLON")
+            let elif_body = parse_block(st, ns)
+            if elif_body >= 0:
+                add_child(ns, elif_node, elif_body)
+            add_child(ns, if_node, elif_node)
+        if check_tok(st, "ELSE"):
+            advance_tok(st)
+            let else_node = new_node(ns, "ELSE", "", "", tok.line, tok.column)
+            expect_tok(st, "COLON")
+            let else_body = parse_block(st, ns)
+            if else_body >= 0:
+                add_child(ns, else_node, else_body)
+            add_child(ns, if_node, else_node)
+        return if_node
+    if tok.kind == "WHILE":
+        advance_tok(st)
+        let while_node = new_node(ns, "WHILE", "", "", tok.line, tok.column)
+        let cond = parse_expression(st, ns)
+        add_child(ns, while_node, cond)
+        expect_tok(st, "COLON")
+        let body = parse_block(st, ns)
+        if body >= 0:
+            add_child(ns, while_node, body)
+        return while_node
+    if tok.kind == "PRINT":
+        advance_tok(st)
+        let print_node = new_node(ns, "PRINT", "", "", tok.line, tok.column)
+        if not check_tok(st, "NEWLINE") and not check_tok(st, "DEDENT"):
+            let first_arg = 1
+            while not check_tok(st, "NEWLINE") and not check_tok(st, "DEDENT") and st.pos < st.count:
+                if not first_arg:
+                    expect_tok(st, "COMMA")
+                first_arg = 0
+                let arg = parse_expression(st, ns)
+                add_child(ns, print_node, arg)
+        return print_node
+    if tok.kind == "BREAK":
+        advance_tok(st)
+        return new_node(ns, "BREAK", "", "", tok.line, tok.column)
+    if tok.kind == "CONTINUE":
+        advance_tok(st)
+        return new_node(ns, "CONTINUE", "", "", tok.line, tok.column)
+    if tok.kind == "PASS":
+        advance_tok(st)
+        return new_node(ns, "PASS", "", "", tok.line, tok.column)
+    let expr = parse_expression(st, ns)
+    if expr >= 0:
+        if check_tok(st, "EQ"):
+            advance_tok(st)
+            let assign = new_node(ns, "ASSIGN", "", "=", tok.line, tok.column)
+            add_child(ns, assign, expr)
+            let rhs = parse_expression(st, ns)
+            add_child(ns, assign, rhs)
+            return assign
+        if check_tok(st, "PLUS_EQ"):
+            advance_tok(st)
+            let assign = new_node(ns, "ASSIGN", "", "+=", tok.line, tok.column)
+            add_child(ns, assign, expr)
+            let rhs = parse_expression(st, ns)
+            add_child(ns, assign, rhs)
+            return assign
+        if check_tok(st, "MINUS_EQ"):
+            advance_tok(st)
+            let assign = new_node(ns, "ASSIGN", "", "-=", tok.line, tok.column)
+            add_child(ns, assign, expr)
+            let rhs = parse_expression(st, ns)
+            add_child(ns, assign, rhs)
+            return assign
+    return expr
+
+fn is_string_kind(kind: *char):
+    return kind == "STRING"
+
+fn str_eq(a: *char, b: *char):
+    let i = 0
+    while a[i] != 0 or b[i] != 0:
+        if a[i] != b[i]:
+            return 0
+        i = i + 1
+    return 1
+
+fn find_str_in_list(arr: **char, count, name: *char):
+    let i = 0
+    while i < count:
+        if str_eq(arr[i], name):
+            return i
+        i = i + 1
+    return -1
+
+fn cg_init_state() -> *CgState:
+    let st: *CgState = alloc[CgState](1)
+    st.declared = alloc[*char](500)
+    st.declared_count = 0
+    st.string_vars = alloc[*char](500)
+    st.string_count = 0
+    st.ptr_vars = alloc[*char](500)
+    st.ptr_count = 0
+    st.fn_ret_types = alloc[*char](200)
+    st.fn_ret_names = alloc[*char](200)
+    st.fn_ret_count = 0
+    st.struct_names = alloc[*char](100)
+    st.struct_count = 0
+    st.struct_fields = alloc[*char](500)
+    st.struct_field_count = 0
+    st.current_fn = ""
+    st.has_return = 0
+    return st
+
+fn cg_is_declared(st: *CgState, name: *char):
+    return find_str_in_list(st.declared, st.declared_count, name) >= 0
+
+fn cg_add_declared(st: *CgState, name: *char):
+    st.declared[st.declared_count] = name
+    st.declared_count = st.declared_count + 1
+
+fn cg_is_string_var(st: *CgState, name: *char):
+    return find_str_in_list(st.string_vars, st.string_count, name) >= 0
+
+fn cg_add_string_var(st: *CgState, name: *char):
+    st.string_vars[st.string_count] = name
+    st.string_count = st.string_count + 1
+
+fn cg_save_declared(st: *CgState) -> i32:
+    return st.declared_count
+
+fn cg_restore_declared(st: *CgState, saved):
+    st.declared_count = saved
+
+fn cg_find_ret_type(st: *CgState, name: *char) -> *char:
+    let i = 0
+    while i < st.fn_ret_count:
+        if str_eq(st.fn_ret_names[i], name):
+            return st.fn_ret_types[i]
+        i = i + 1
+    return ""
+
+fn cg_add_ret_type(st: *CgState, name: *char, rtype: *char):
+    st.fn_ret_names[st.fn_ret_count] = name
+    st.fn_ret_types[st.fn_ret_count] = rtype
+    st.fn_ret_count = st.fn_ret_count + 1
+
+fn cg_is_struct(st: *CgState, name: *char):
+    return find_str_in_list(st.struct_names, st.struct_count, name) >= 0
+
+fn cg_add_struct(st: *CgState, name: *char):
+    st.struct_names[st.struct_count] = name
+    st.struct_count = st.struct_count + 1
+
+fn cg_find_field_type(st: *CgState, struct_name: *char, field_name: *char) -> *char:
+    let si = find_str_in_list(st.struct_names, st.struct_count, struct_name)
+    if si < 0:
+        return ""
+    let i = si
+    while i < st.struct_field_count:
+        let i_next = i + 1
+        if str_eq(st.struct_fields[i], struct_name) and i_next < st.struct_field_count and str_eq(st.struct_fields[i_next], field_name):
+            return st.struct_fields[i + 2]
+        i = i + 3
+    return ""
+
+fn cg_add_field(st: *CgState, struct_name: *char, field_name: *char, field_type: *char):
+    st.struct_fields[st.struct_field_count] = struct_name
+    st.struct_fields[st.struct_field_count + 1] = field_name
+    st.struct_fields[st.struct_field_count + 2] = field_type
+    st.struct_field_count = st.struct_field_count + 3
+
+fn cg_get_field_type(st: *CgState, obj_node_idx, ns: *NodeStore, field_name: *char) -> *char:
+    let fi = 0
+    while fi < st.struct_field_count:
+        if str_eq(st.struct_fields[fi + 1], field_name):
+            return st.struct_fields[fi + 2]
+        fi = fi + 3
+    return ""
+
+fn cg_index_elem_type(st: *CgState, ns: *NodeStore, node_idx) -> *char:
+    if node_idx < 0:
+        return ""
+    let node = ns.nodes[node_idx]
+    if node.kind != "INDEX":
+        return ""
+    let obj_idx = node.first_child
+    let obj_node = ns.nodes[obj_idx]
+    if obj_node.kind == "MEMBER":
+        let field_type = cg_get_field_type(st, obj_idx, ns, obj_node.value)
+        if len(field_type) > 1 and substr(field_type, len(field_type) - 1, 1) == "*":
+            let elem_type = substr(field_type, 0, len(field_type) - 1)
+            return elem_type
+    return ""
+
+fn cg_is_string_expr(st: *CgState, ns: *NodeStore, node_idx):
+    if node_idx < 0:
+        return 0
+    let node = ns.nodes[node_idx]
+    if node.kind == "STRING":
+        return 1
+    if node.kind == "IDENT":
+        return cg_is_string_var(st, node.value)
+    if node.kind == "BINOP" and node.op == "+":
+        let left = ns.nodes[node.first_child]
+        let right = ns.nodes[left.next_sibling]
+        return cg_is_string_expr(st, ns, node.first_child) or cg_is_string_expr(st, ns, left.next_sibling)
+    if node.kind == "MEMBER":
+        let field_type = cg_get_field_type(st, node.first_child, ns, node.value)
+        if field_type == "const char*" or field_type == "char*":
+            return 1
+        return 0
+    if node.kind == "CALL":
+        let callee = ns.nodes[node.first_child]
+        if callee.kind == "IDENT":
+            if callee.value == "read_file" or callee.value == "str" or callee.value == "substr" or callee.value == "chr" or callee.value == "input":
+                return 1
+            let ret_type = cg_find_ret_type(st, callee.value)
+            if ret_type == "const char*":
+                return 1
+    return 0
+
+fn cg_is_ptr_var(st: *CgState, name: *char):
+    return find_str_in_list(st.ptr_vars, st.ptr_count, name) >= 0
+
+fn cg_add_ptr_var(st: *CgState, name: *char):
+    st.ptr_vars[st.ptr_count] = name
+    st.ptr_count = st.ptr_count + 1
+
+fn cg_indent(level):
+    let i = 0
+    while i < level:
+        print("    ")
+        i = i + 1
+
+fn cg_type_to_c(st: *CgState, ns: *NodeStore, node_idx) -> *char:
+    if node_idx < 0:
+        return "double"
+    let node = ns.nodes[node_idx]
+    if node.kind == "TYPE":
+        if node.value == "i32":
+            return "int32_t"
+        if node.value == "i8":
+            return "int8_t"
+        if node.value == "i16":
+            return "int16_t"
+        if node.value == "i64":
+            return "int64_t"
+        if node.value == "u32":
+            return "uint32_t"
+        if node.value == "u8":
+            return "uint8_t"
+        if node.value == "u16":
+            return "uint16_t"
+        if node.value == "u64":
+            return "uint64_t"
+        if node.value == "f32":
+            return "float"
+        if node.value == "f64":
+            return "double"
+        if node.value == "bool":
+            return "int"
+        if node.value == "void":
+            return "void"
+        if node.value == "char":
+            return "char"
+        if node.value == "string":
+            return "const char*"
+        if node.value == "usize":
+            return "size_t"
+        if cg_is_struct(st, node.value):
+            return "struct " + node.value
+        return node.value
+    if node.kind == "PTR_TYPE":
+        let base = cg_type_to_c(st, ns, node.first_child)
+        if base == "char":
+            return "const char*"
+        return base + "*"
+    return "double"
+
+fn cg_emit_expr(st: *CgState, ns: *NodeStore, node_idx, indent) -> *char:
+    if node_idx < 0:
+        return "0"
+    let node = ns.nodes[node_idx]
+    if node.kind == "INT":
+        return node.value
+    if node.kind == "STRING":
+        return node.value
+    if node.kind == "BOOL":
+        if node.value == "true":
+            return "1"
+        return "0"
+    if node.kind == "NONE":
+        return "0"
+    if node.kind == "IDENT":
+        return node.value
+    if node.kind == "BINOP":
+        let left_idx = node.first_child
+        let right_idx = ns.nodes[left_idx].next_sibling
+        let left = cg_emit_expr(st, ns, left_idx, indent)
+        let right = cg_emit_expr(st, ns, right_idx, indent)
+        if node.op == "and":
+            return "(" + left + " && " + right + ")"
+        if node.op == "or":
+            return "(" + left + " || " + right + ")"
+        if node.op == "==":
+            if cg_is_string_expr(st, ns, left_idx) or cg_is_string_expr(st, ns, right_idx):
+                return "((double)(strcmp(" + left + ", " + right + ") == 0))"
+            return "(" + left + " == " + right + ")"
+        if node.op == "!=":
+            if cg_is_string_expr(st, ns, left_idx) or cg_is_string_expr(st, ns, right_idx):
+                return "((double)(strcmp(" + left + ", " + right + ") != 0))"
+            return "(" + left + " != " + right + ")"
+        if node.op == "+":
+            if cg_is_string_expr(st, ns, left_idx) or cg_is_string_expr(st, ns, right_idx):
+                return "spy_strcat(" + left + ", " + right + ")"
+            return "(" + left + " + " + right + ")"
+        return "(" + left + " " + node.op + " " + right + ")"
+    if node.kind == "UNARY":
+        let operand_idx = node.first_child
+        let operand = cg_emit_expr(st, ns, operand_idx, indent)
+        if node.op == "not":
+            return "(!" + operand + ")"
+        return "(" + node.op + operand + ")"
+    if node.kind == "CALL":
+        let callee_idx = node.first_child
+        let callee = ns.nodes[callee_idx]
+        let callee_name = ""
+        if callee.kind == "IDENT":
+            callee_name = callee.value
+        if callee.kind == "INDEX":
+            let base_idx = callee.first_child
+            let base = ns.nodes[base_idx]
+            if base.kind == "IDENT" and base.value == "alloc":
+                let type_idx = ns.nodes[base_idx].next_sibling
+                let count_idx = ns.nodes[callee_idx].next_sibling
+                let ctype = ""
+                let type_node = ns.nodes[type_idx]
+                if type_node.kind == "TYPE" or type_node.kind == "PTR_TYPE":
+                    ctype = cg_type_to_c(st, ns, type_idx)
+                else:
+                    if type_node.value == "i32":
+                        ctype = "int32_t"
+                    elif type_node.value == "i8":
+                        ctype = "int8_t"
+                    elif type_node.value == "i16":
+                        ctype = "int16_t"
+                    elif type_node.value == "char":
+                        ctype = "char"
+                    else:
+                        if cg_is_struct(st, type_node.value):
+                            ctype = "struct " + type_node.value
+                        else:
+                            ctype = type_node.value
+                let count = cg_emit_expr(st, ns, count_idx, indent)
+                return "((" + ctype + "*)malloc((" + count + ") * sizeof(" + ctype + ")))"
+        if callee_name == "len":
+            let arg = cg_emit_expr(st, ns, ns.nodes[callee_idx].next_sibling, indent)
+            return "((double)strlen(" + arg + "))"
+        if callee_name == "str":
+            let arg = cg_emit_expr(st, ns, ns.nodes[callee_idx].next_sibling, indent)
+            let tmp_name = "__cg_tmp" + str(st.declared_count)
+            st.declared_count = st.declared_count + 1
+            cg_indent(indent)
+            print("char " + tmp_name + "[64];\n")
+            cg_indent(indent)
+            print("snprintf(" + tmp_name + ", 64, \"%g\", " + arg + ");\n")
+            return tmp_name
+        if callee_name == "print":
+            let arg_idx = ns.nodes[callee_idx].next_sibling
+            cg_emit_expr(st, ns, arg_idx, indent)
+            return "0"
+        let args = ""
+        let arg_idx = ns.nodes[callee_idx].next_sibling
+        while arg_idx >= 0:
+            if args != "":
+                args = args + ", "
+            args = args + cg_emit_expr(st, ns, arg_idx, indent)
+            arg_idx = ns.nodes[arg_idx].next_sibling
+        if callee_name == "spy_strcat" or callee_name == "spy_format":
+            return callee_name + "(" + args + ")"
+        if callee_name == "read_file":
+            return "spy_read_file(" + args + ")"
+        if callee_name == "substr":
+            return "spy_substr(" + args + ")"
+        if callee_name == "chr":
+            return "spy_chr(" + args + ")"
+        return callee_name + "(" + args + ")"
+    if node.kind == "MEMBER":
+        let obj_idx = node.first_child
+        let member_name = node.value
+        let obj = ns.nodes[obj_idx]
+        let obj_str = cg_emit_expr(st, ns, obj_idx, indent)
+        if obj.kind == "IDENT" and cg_is_ptr_var(st, obj.value):
+            return obj_str + "->" + member_name
+        return obj_str + "." + member_name
+    if node.kind == "INDEX":
+        let obj_idx = node.first_child
+        let idx_idx = ns.nodes[obj_idx].next_sibling
+        let obj_str = cg_emit_expr(st, ns, obj_idx, indent)
+        let idx_str = cg_emit_expr(st, ns, idx_idx, indent)
+        return obj_str + "[(int)(" + idx_str + ")]"
+    return node.value
+
+fn cg_needs_cast(st: *CgState, ns: *NodeStore, node_idx):
+    if node_idx < 0:
+        return 0
+    let node = ns.nodes[node_idx]
+    if node.kind == "STRING":
+        return 1
+    if node.kind == "IDENT":
+        return cg_is_string_var(st, node.value)
+    if node.kind == "CALL":
+        let callee = ns.nodes[node.first_child]
+        if callee.kind == "IDENT" and callee.value == "len":
+            return 0
+        if callee.kind == "IDENT":
+            let rt = cg_find_ret_type(st, callee.value)
+            if rt == "const char*" or rt == "char*":
+                return 1
+    return 0
+
+fn cg_emit_print_args(st: *CgState, ns: *NodeStore, node_idx, indent):
+    if node_idx < 0:
+        return
+    let node = ns.nodes[node_idx]
+    if cg_is_string_expr(st, ns, node_idx):
+        cg_indent(indent)
+        print("printf(\"%s\", " + cg_emit_expr(st, ns, node_idx, indent) + ");\n")
+    else:
+        cg_indent(indent)
+        print("printf(\"%g\", " + cg_emit_expr(st, ns, node_idx, indent) + ");\n")
+    let next = node.next_sibling
+    if next >= 0:
+        cg_indent(indent)
+        print("printf(\" \");\n")
+        cg_emit_print_args(st, ns, next, indent)
+
+fn cg_emit_stmt(st: *CgState, ns: *NodeStore, node_idx, indent):
+    if node_idx < 0:
+        return
+    let node = ns.nodes[node_idx]
+    if node.kind == "FN":
+        let fn_name = node.value
+        let child_idx = node.first_child
+        let params = ""
+        let has_main = 0
+        if fn_name == "main":
+            has_main = 1
+        let ret_type = "double"
+        let scan_p = node.first_child
+        while scan_p >= 0 and ns.nodes[scan_p].kind == "PARAM":
+            scan_p = ns.nodes[scan_p].next_sibling
+        if scan_p >= 0 and ns.nodes[scan_p].kind == "TYPE":
+            ret_type = cg_type_to_c(st, ns, scan_p)
+        elif scan_p >= 0 and ns.nodes[scan_p].kind == "PTR_TYPE":
+            ret_type = cg_type_to_c(st, ns, scan_p)
+        st.current_fn = fn_name
+        st.has_return = 0
+        let saved_declared_count = st.declared_count
+        let saved_string_count = st.string_count
+        let saved_ptr_count = st.ptr_count
+        st.declared_count = 0
+        if has_main:
+            cg_indent(indent)
+            print("int main(int argc, char** argv) {\n")
+        else:
+            cg_indent(indent)
+            print(ret_type + " " + fn_name + "(")
+            let first_p = 1
+            while child_idx >= 0 and ns.nodes[child_idx].kind == "PARAM":
+                if not first_p:
+                    print(", ")
+                first_p = 0
+                let pnode = ns.nodes[child_idx]
+                let ptype = "double"
+                if pnode.first_child >= 0:
+                    ptype = cg_type_to_c(st, ns, pnode.first_child)
+                print(ptype + " " + pnode.value)
+                cg_add_declared(st, pnode.value)
+                if ptype == "const char*":
+                    cg_add_string_var(st, pnode.value)
+                elif ptype != "double" and substr(ptype, len(ptype) - 1, 1) == "*":
+                    cg_add_ptr_var(st, pnode.value)
+                child_idx = ns.nodes[child_idx].next_sibling
+            print(") {\n")
+        if child_idx >= 0:
+            if ns.nodes[child_idx].kind == "TYPE" or ns.nodes[child_idx].kind == "PTR_TYPE":
+                child_idx = ns.nodes[child_idx].next_sibling
+        if child_idx >= 0 and ns.nodes[child_idx].kind != "PARAM":
+            cg_emit_block(st, ns, child_idx, indent + 1)
+        if not st.has_return and not has_main:
+            cg_indent(indent + 1)
+            print("return 0;\n")
+        cg_indent(indent)
+        print("}\n")
+        st.current_fn = ""
+        st.declared_count = saved_declared_count
+        st.string_count = saved_string_count
+        st.ptr_count = saved_ptr_count
+        return
+    if node.kind == "LET":
+        let var_name = node.value
+        let child_idx = node.first_child
+        let type_annotation = ""
+        let init_idx = -1
+        if child_idx >= 0 and ns.nodes[child_idx].kind == "TYPE":
+            type_annotation = ns.nodes[child_idx].value
+            if ns.nodes[child_idx].first_child >= 0:
+                type_annotation = cg_type_to_c(st, ns, child_idx)
+            child_idx = ns.nodes[child_idx].next_sibling
+        elif child_idx >= 0 and ns.nodes[child_idx].kind == "PTR_TYPE":
+            type_annotation = cg_type_to_c(st, ns, child_idx)
+            child_idx = ns.nodes[child_idx].next_sibling
+        if child_idx >= 0 and ns.nodes[child_idx].kind != "TYPE":
+            init_idx = child_idx
+        if cg_is_declared(st, var_name):
+            cg_indent(indent)
+            print(var_name + " = " + cg_emit_expr(st, ns, init_idx, indent) + ";\n")
+            return
+        cg_add_declared(st, var_name)
+        let ctype = "double"
+        if type_annotation != "":
+            ctype = type_annotation
+        else:
+            if init_idx >= 0:
+                if cg_is_string_expr(st, ns, init_idx):
+                    ctype = "const char*"
+                    cg_add_string_var(st, var_name)
+                let init_node = ns.nodes[init_idx]
+                if init_node.kind == "CALL":
+                    let callee = ns.nodes[init_node.first_child]
+                    if callee.kind == "IDENT":
+                        let rt = cg_find_ret_type(st, callee.value)
+                        if rt != "":
+                            ctype = rt
+                        if callee.value == "read_file" or callee.value == "str" or callee.value == "substr" or callee.value == "chr" or callee.value == "input":
+                            ctype = "const char*"
+                            cg_add_string_var(st, var_name)
+                elif init_node.kind == "INDEX":
+                    let elem_type = cg_index_elem_type(st, ns, init_idx)
+                    if elem_type != "":
+                        ctype = elem_type
+        if ctype == "const char*":
+            cg_add_string_var(st, var_name)
+        elif ctype != "double" and substr(ctype, len(ctype) - 1, 1) == "*":
+            cg_add_ptr_var(st, var_name)
+        cg_indent(indent)
+        print(ctype + " " + var_name + " = " + cg_emit_expr(st, ns, init_idx, indent) + ";\n")
+        return
+    if node.kind == "PRINT":
+        let child_idx = node.first_child
+        cg_emit_print_args(st, ns, child_idx, indent)
+        cg_indent(indent)
+        print("printf(\"\\n\");\n")
+        return
+    if node.kind == "RETURN":
+        st.has_return = 1
+        let child_idx = node.first_child
+        if child_idx >= 0:
+            cg_indent(indent)
+            print("return " + cg_emit_expr(st, ns, child_idx, indent) + ";\n")
+        else:
+            cg_indent(indent)
+            print("return 0;\n")
+        return
+    if node.kind == "IF":
+        let cond_idx = node.first_child
+        let body_idx = ns.nodes[cond_idx].next_sibling
+        let saved = cg_save_declared(st)
+        cg_indent(indent)
+        print("if (" + cg_emit_expr(st, ns, cond_idx, indent) + ") {\n")
+        cg_emit_block(st, ns, body_idx, indent + 1)
+        cg_restore_declared(st, saved)
+        let extra = ns.nodes[body_idx].next_sibling
+        while extra >= 0:
+            let enode = ns.nodes[extra]
+            if enode.kind == "ELIF":
+                let elif_cond = enode.first_child
+                let elif_body = ns.nodes[elif_cond].next_sibling
+                cg_indent(indent)
+                print("} else if (" + cg_emit_expr(st, ns, elif_cond, indent) + ") {\n")
+                cg_emit_block(st, ns, elif_body, indent + 1)
+                cg_restore_declared(st, saved)
+                extra = ns.nodes[extra].next_sibling
+            else:
+                if enode.kind == "ELSE":
+                    let else_body = enode.first_child
+                    cg_indent(indent)
+                    print("} else {\n")
+                    cg_emit_block(st, ns, else_body, indent + 1)
+                    cg_restore_declared(st, saved)
+                    extra = -1
+                else:
+                    extra = ns.nodes[extra].next_sibling
+        cg_indent(indent)
+        print("}\n")
+        return
+    if node.kind == "WHILE":
+        let cond_idx = node.first_child
+        let body_idx = ns.nodes[cond_idx].next_sibling
+        let saved = cg_save_declared(st)
+        cg_indent(indent)
+        print("while (" + cg_emit_expr(st, ns, cond_idx, indent) + ") {\n")
+        cg_emit_block(st, ns, body_idx, indent + 1)
+        cg_restore_declared(st, saved)
+        cg_indent(indent)
+        print("}\n")
+        return
+    if node.kind == "BREAK":
+        cg_indent(indent)
+        print("break;\n")
+        return
+    if node.kind == "CONTINUE":
+        cg_indent(indent)
+        print("continue;\n")
+        return
+    if node.kind == "PASS":
+        return
+    if node.kind == "ASSIGN":
+        let lhs_idx = node.first_child
+        let rhs_idx = ns.nodes[lhs_idx].next_sibling
+        cg_indent(indent)
+        print(cg_emit_expr(st, ns, lhs_idx, indent) + " " + node.op + " " + cg_emit_expr(st, ns, rhs_idx, indent) + ";\n")
+        return
+    if node.kind == "STRUCT":
+        let struct_name = node.value
+        cg_add_struct(st, struct_name)
+        cg_indent(indent)
+        print("struct " + struct_name + " {\n")
+        let field_idx = node.first_child
+        while field_idx >= 0:
+            let field = ns.nodes[field_idx]
+            if field.kind == "FIELD":
+                let field_name = field.value
+                let field_type = cg_type_to_c(st, ns, field.first_child)
+                cg_add_field(st, struct_name, field_name, field_type)
+                cg_indent(indent + 1)
+                print(field_type + " " + field_name + ";\n")
+            field_idx = ns.nodes[field_idx].next_sibling
+        cg_indent(indent)
+        print("};\n")
+        return
+    if node.kind == "ELIF" or node.kind == "ELSE":
+        return
+    cg_indent(indent)
+    print(cg_emit_expr(st, ns, node_idx, indent) + ";\n")
+
+fn cg_emit_block(st: *CgState, ns: *NodeStore, first_idx, indent):
+    let idx = first_idx
+    while idx >= 0:
+        cg_emit_stmt(st, ns, idx, indent)
+        let node = ns.nodes[idx]
+        idx = node.next_sibling
+
+fn cg_infer_param_type(st: *CgState, ns: *NodeStore, param_name: *char, body_idx) -> *char:
+    if body_idx < 0:
+        return ""
+    let body_node = ns.nodes[body_idx]
+    if body_node.kind == "BINOP":
+        if body_node.op == "==" or body_node.op == "!=":
+            let left_idx = body_node.first_child
+            let right_idx = ns.nodes[left_idx].next_sibling
+            if left_idx >= 0 and ns.nodes[left_idx].kind == "STRING":
+                if right_idx >= 0 and ns.nodes[right_idx].kind == "IDENT" and ns.nodes[right_idx].value == param_name:
+                    return "const char*"
+            if right_idx >= 0 and ns.nodes[right_idx].kind == "STRING":
+                if left_idx >= 0 and ns.nodes[left_idx].kind == "IDENT" and ns.nodes[left_idx].value == param_name:
+                    return "const char*"
+    let infer = ""
+    let child = body_node.first_child
+    while child >= 0:
+        let t = cg_infer_param_type(st, ns, param_name, child)
+        if t != "":
+            infer = t
+        child = ns.nodes[child].next_sibling
+    let next = body_node.next_sibling
+    if next >= 0 and infer == "":
+        infer = cg_infer_param_type(st, ns, param_name, next)
+    return infer
+
+fn cg_collect_call_params(st: *CgState, ns: *NodeStore, root_idx, body_idx):
+    if body_idx < 0:
+        return
+    let node = ns.nodes[body_idx]
+    if node.kind == "CALL":
+        let callee_first = node.first_child
+        if callee_first >= 0:
+            let callee = ns.nodes[callee_first]
+            if callee.kind == "IDENT":
+                let fn_name = callee.value
+                let param_idx = ns.nodes[callee_first].next_sibling
+                let callee_fn = -1
+                let child = ns.nodes[root_idx].first_child
+                while child >= 0:
+                    if ns.nodes[child].kind == "FN" and ns.nodes[child].value == fn_name:
+                        callee_fn = child
+                        break
+                    child = ns.nodes[child].next_sibling
+                if callee_fn >= 0:
+                    let callee_param = ns.nodes[callee_fn].first_child
+                    while param_idx >= 0 and callee_param >= 0 and ns.nodes[callee_param].kind == "PARAM":
+                        if ns.nodes[callee_param].first_child < 0:
+                            if ns.nodes[param_idx].kind == "STRING":
+                                let ptype = new_node(ns, "PTR_TYPE", "", "", 0, 0)
+                                let base = new_node(ns, "TYPE", "char", "", 0, 0)
+                                add_child(ns, ptype, base)
+                                add_child(ns, callee_param, ptype)
+                        callee_param = ns.nodes[callee_param].next_sibling
+                        param_idx = ns.nodes[param_idx].next_sibling
+    let child = node.first_child
+    while child >= 0:
+        cg_collect_call_params(st, ns, root_idx, child)
+        child = ns.nodes[child].next_sibling
+    if node.kind != "CALL":
+        let next = node.next_sibling
+        if next >= 0:
+            cg_collect_call_params(st, ns, root_idx, next)
+
+fn cg_first_pass(st: *CgState, ns: *NodeStore, root_idx):
+    let child = ns.nodes[root_idx].first_child
+    while child >= 0:
+        let node = ns.nodes[child]
+        if node.kind == "FN":
+            let fn_name = node.value
+            let p = node.first_child
+            while p >= 0 and ns.nodes[p].kind == "PARAM":
+                p = ns.nodes[p].next_sibling
+            if p >= 0 and ns.nodes[p].kind == "TYPE":
+                cg_add_ret_type(st, fn_name, cg_type_to_c(st, ns, p))
+            elif p >= 0 and ns.nodes[p].kind == "PTR_TYPE":
+                cg_add_ret_type(st, fn_name, cg_type_to_c(st, ns, p))
+            else:
+                cg_add_ret_type(st, fn_name, "double")
+            let body_start = p
+            if body_start >= 0:
+                if ns.nodes[body_start].kind == "TYPE" or ns.nodes[body_start].kind == "PTR_TYPE":
+                    body_start = ns.nodes[body_start].next_sibling
+            let param = node.first_child
+            while param >= 0 and ns.nodes[param].kind == "PARAM":
+                if ns.nodes[param].first_child < 0:
+                    let inferred = cg_infer_param_type(st, ns, ns.nodes[param].value, body_start)
+                    if inferred == "const char*":
+                        let ptype = new_node(ns, "PTR_TYPE", "", "", 0, 0)
+                        let base = new_node(ns, "TYPE", "char", "", 0, 0)
+                        add_child(ns, ptype, base)
+                        add_child(ns, param, ptype)
+                param = ns.nodes[param].next_sibling
+        if node.kind == "STRUCT":
+            cg_add_struct(st, node.value)
+        child = ns.nodes[child].next_sibling
+
+fn cg_generate(st: *CgState, ns: *NodeStore, root_idx):
+    print("#include <stdio.h>\n")
+    print("#include <stdlib.h>\n")
+    print("#include <string.h>\n")
+    print("#include <stdint.h>\n")
+    print("\n")
+    print("const char* spy_strcat(const char* a, const char* b);\n")
+    print("const char* spy_read_file(const char* path);\n")
+    print("const char* spy_format(const char* fmt, ...);\n")
+    print("const char* spy_chr(int n);\n")
+    print("const char* spy_substr(const char* s, int start, int len);\n")
+    print("const char* spy_strcat(const char* a, const char* b) {\n")
+    print("    size_t len = strlen(a) + strlen(b);\n")
+    print("    char* result = (char*)malloc(len + 1);\n")
+    print("    strcpy(result, a);\n")
+    print("    strcat(result, b);\n")
+    print("    return result;\n")
+    print("}\n")
+    print("const char* spy_chr(int n) {\n")
+    print("    char* buf = (char*)malloc(2);\n")
+    print("    buf[0] = (char)n;\n")
+    print("    buf[1] = 0;\n")
+    print("    return buf;\n")
+    print("}\n")
+    print("const char* spy_substr(const char* s, int start, int len) {\n")
+    print("    char* buf = (char*)malloc(len + 1);\n")
+    print("    memcpy(buf, s + start, len);\n")
+    print("    buf[len] = 0;\n")
+    print("    return buf;\n")
+    print("}\n")
+    print("const char* spy_read_file(const char* path) {\n")
+    print("    FILE* f = fopen(path, \"rb\");\n")
+    print("    if (!f) return \"\";\n")
+    print("    fseek(f, 0, SEEK_END);\n")
+    print("    long len = ftell(f);\n")
+    print("    fseek(f, 0, SEEK_SET);\n")
+    print("    char* buf = (char*)malloc(len + 1);\n")
+    print("    fread(buf, 1, len, f);\n")
+    print("    buf[len] = '\\0';\n")
+    print("    fclose(f);\n")
+    print("    return buf;\n")
+    print("}\n\n")
+    cg_first_pass(st, ns, root_idx)
+    cg_collect_call_params(st, ns, root_idx, root_idx)
+    let child = ns.nodes[root_idx].first_child
+    let node = ns.nodes[child]
+    while child >= 0:
+        node = ns.nodes[child]
+        if node.kind == "STRUCT":
+            cg_emit_stmt(st, ns, child, 0)
+        child = ns.nodes[child].next_sibling
+    child = ns.nodes[root_idx].first_child
+    while child >= 0:
+        node = ns.nodes[child]
+        if node.kind == "FN" and node.value != "main":
+            let fn_name = node.value
+            let p = node.first_child
+            let ret_type = "double"
+            let scan_p = p
+            while scan_p >= 0 and ns.nodes[scan_p].kind == "PARAM":
+                scan_p = ns.nodes[scan_p].next_sibling
+            if scan_p >= 0 and ns.nodes[scan_p].kind == "TYPE":
+                ret_type = cg_type_to_c(st, ns, scan_p)
+            elif scan_p >= 0 and ns.nodes[scan_p].kind == "PTR_TYPE":
+                ret_type = cg_type_to_c(st, ns, scan_p)
+            print(ret_type + " " + fn_name + "(")
+            let first_p = 1
+            while p >= 0 and ns.nodes[p].kind == "PARAM":
+                if not first_p:
+                    print(", ")
+                first_p = 0
+                let ptype = "double"
+                if ns.nodes[p].first_child >= 0:
+                    ptype = cg_type_to_c(st, ns, ns.nodes[p].first_child)
+                print(ptype)
+                p = ns.nodes[p].next_sibling
+            print(");\n")
+        child = ns.nodes[child].next_sibling
+    child = ns.nodes[root_idx].first_child
+    while child >= 0:
+        node = ns.nodes[child]
+        if node.kind == "FN":
+            cg_emit_stmt(st, ns, child, 0)
+        child = ns.nodes[child].next_sibling
+    let has_main = 0
+    child = ns.nodes[root_idx].first_child
+    while child >= 0:
+        node = ns.nodes[child]
+        if node.kind == "FN" and node.value == "main":
+            has_main = 1
+        child = ns.nodes[child].next_sibling
+    if not has_main:
+        print("int main() {\n")
+        child = ns.nodes[root_idx].first_child
+        while child >= 0:
+            node = ns.nodes[child]
+            if node.kind != "STRUCT" and node.kind != "FN":
+                cg_emit_stmt(st, ns, child, 1)
+            child = ns.nodes[child].next_sibling
+        print("    return 0;\n")
+        print("}\n")
+
+fn parse_and_codegen(source: *char):
+    let est_count = len(source) * 3
+    let tokens: *Token = alloc[Token](est_count)
+    let tcount = lex(source, tokens)
+    let ns: *NodeStore = alloc[NodeStore](1)
+    let max_nodes = len(source) * 3
+    ns.capacity = max_nodes
+    ns.count = 0
+    ns.nodes = alloc[ASTNode](max_nodes)
+    let st: *ParserState = alloc[ParserState](1)
+    st.tokens = tokens
+    st.count = tcount
+    st.pos = 0
+    let root = new_node(ns, "PROGRAM", "", "", 0, 0)
+    while st.pos < st.count:
+        skip_nls(st)
+        if check_tok(st, "EOF"):
+            break
+        let stmt_node = parse_statement(st, ns)
+        if stmt_node >= 0:
+            add_child(ns, root, stmt_node)
+    let cg = cg_init_state()
+    cg_generate(cg, ns, root)
+
+fn main():
+    let filename = "self_lexer.spy"
+    if sys.argv[1] != "":
+        filename = sys.argv[1]
+    let source = read_file(filename)
+    if len(source) == 0:
+        print("Error: could not read " + filename)
+        return
+    parse_and_codegen(source)

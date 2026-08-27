@@ -1,0 +1,13 @@
+# Spy Programming Language Engine & Compiler
+# Copyright (C) 2026 Valuvajjala Vivek Vardhan Rao
+# Author: Valuvajjala Vivek Vardhan Rao
+#
+# GNU General Public License v3.0
+
+async fn compute_task(x: i32) -> i32:
+    return x * 2
+
+fn main() -> i32:
+    let val: i32 = await compute_task(21)
+    printf("Async/Await Test Output: %d\n", val)
+    return 0

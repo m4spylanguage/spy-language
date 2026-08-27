@@ -1,0 +1,961 @@
+# Spy Programming Language Engine & Compiler
+# Copyright (C) 2026 Valuvajjala Vivek Vardhan Rao
+#
+# Author: Valuvajjala Vivek Vardhan Rao
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+struct Token:
+    kind: *char
+    value: *char
+    line: i32
+    column: i32
+
+struct ASTNode:
+    kind: *char
+    value: *char
+    op: *char
+    line: i32
+    column: i32
+    first_child: i32
+    next_sibling: i32
+
+fn is_digit(c):
+    return c >= 48 and c <= 57
+
+fn is_alpha(c):
+    return c >= 65 and c <= 90 or c >= 97 and c <= 122 or c == 95
+
+fn is_alnum(c):
+    return is_digit(c) or is_alpha(c)
+
+fn is_keyword(word) -> i32:
+    if word == "fn":
+        return 1
+    elif word == "let":
+        return 1
+    elif word == "if":
+        return 1
+    elif word == "else":
+        return 1
+    elif word == "while":
+        return 1
+    elif word == "for":
+        return 1
+    elif word == "return":
+        return 1
+    elif word == "print":
+        return 1
+    elif word == "and":
+        return 1
+    elif word == "or":
+        return 1
+    elif word == "not":
+        return 1
+    elif word == "true":
+        return 1
+    elif word == "false":
+        return 1
+    elif word == "import":
+        return 1
+    elif word == "from":
+        return 1
+    elif word == "struct":
+        return 1
+    elif word == "break":
+        return 1
+    elif word == "continue":
+        return 1
+    elif word == "pass":
+        return 1
+    elif word == "match":
+        return 1
+    elif word == "none":
+        return 1
+    elif word == "elif": 
+        return 1
+    
+fn token_kind_str(word) -> *char:
+    if word == "fn":
+        return "FN"
+    elif word == "let":
+        return "LET"
+    elif word == "if":
+        return "IF"
+    elif word == "else":
+        return "ELSE"
+    elif word == "while":
+        return "WHILE"
+    elif word == "for":
+        return "FOR"
+    elif word == "return":
+        return "RETURN"
+    elif word == "print":
+        return "PRINT"
+    elif word == "and":
+        return "AND"
+    elif word == "or":
+        return "OR"
+    elif word == "not":
+        return "NOT"
+    elif word == "true":
+        return "BOOL"
+    elif word == "false":
+        return "BOOL"
+    elif word == "import":
+        return "IMPORT"
+    elif word == "from":
+        return "FROM"
+    elif word == "struct":
+        return "STRUCT"
+    elif word == "break":
+        return "BREAK"
+    elif word == "continue":
+        return "CONTINUE"
+    elif word == "pass":
+        return "PASS"
+    elif word == "match":
+        return "MATCH"
+    elif word == "none":
+        return "NONE"
+    elif word == "elif":
+       return "ELIF"
+    return "IDENT"
+
+fn lex(source: *char, tokens: *Token):
+    let n = len(source)
+    let i = 0
+    let line = 1
+    let col = 1
+    let ti = 0
+    let indent_stack: *i32 = alloc[i32](200)
+    let indent_top = 0
+    indent_stack[0] = 0
+    let at_line_start = 1
+    let indent = 0
+    let si = 0
+    let blank = 0
+    let current = 0
+    let start = 0
+    let val = ""
+    let kind = ""
+    let quote = 0
+    let c = 0
+
+    while i < n:
+        if at_line_start:
+            indent = 0
+            si = i
+            while si < n:
+                if source[si] == 32:
+                    indent = indent + 1
+                    si = si + 1
+                elif source[si] == 9:
+                    indent = indent + 4
+                    si = si + 1
+                else:
+                    break
+            blank = 0
+            if si >= n or source[si] == 10 or source[si] == 13 or source[si] == 35:
+                blank = 1
+            if blank:
+                i = si
+                while i < n and source[i] != 10:
+                    i = i + 1
+                if i < n and source[i] == 10:
+                    i = i + 1
+                line = line + 1
+                col = 1
+                if i >= n:
+                    current = indent_stack[indent_top]
+                    while indent_top > 0:
+                        indent_top = indent_top - 1
+                        tokens[ti].kind = "DEDENT"
+                        tokens[ti].value = ""
+                        tokens[ti].line = line
+                        tokens[ti].column = 1
+                        ti = ti + 1
+                    return ti
+                continue
+            i = si
+            col = indent + 1
+            current = indent_stack[indent_top]
+            if indent > current:
+                indent_top = indent_top + 1
+                indent_stack[indent_top] = indent
+                tokens[ti].kind = "INDENT"
+                tokens[ti].value = ""
+                tokens[ti].line = line
+                tokens[ti].column = col
+                ti = ti + 1
+            elif indent < current:
+                while indent_top >= 0 and indent_stack[indent_top] > indent:
+                    indent_top = indent_top - 1
+                    tokens[ti].kind = "DEDENT"
+                    tokens[ti].value = ""
+                    tokens[ti].line = line
+                    tokens[ti].column = col
+                    ti = ti + 1
+            at_line_start = 0
+
+        if i >= n:
+            break
+        c = source[i]
+
+        if c == 10:
+            tokens[ti].kind = "NEWLINE"
+            tokens[ti].value = ""
+            tokens[ti].line = line
+            tokens[ti].column = col
+            ti = ti + 1
+            line = line + 1
+            col = 1
+            i = i + 1
+            at_line_start = 1
+        elif c == 32 or c == 9 or c == 13:
+            col = col + 1
+            i = i + 1
+        elif c == 35:
+            while i < n and source[i] != 10:
+                i = i + 1
+        elif is_digit(c):
+            start = i
+            while i < n and is_digit(source[i]):
+                i = i + 1
+            val = substr(source, start, i - start)
+            tokens[ti].kind = "NUMBER"
+            tokens[ti].value = val
+            tokens[ti].line = line
+            tokens[ti].column = col
+            ti = ti + 1
+            col = i - start + col
+        elif is_alpha(c):
+            start = i
+            while i < n and is_alnum(source[i]):
+                i = i + 1
+            val = substr(source, start, i - start)
+            kind = "IDENT"
+            if is_keyword(val):
+                kind = token_kind_str(val)
+            tokens[ti].kind = kind
+            tokens[ti].value = val
+            tokens[ti].line = line
+            tokens[ti].column = col
+            ti = ti + 1
+            col = i - start + col
+        elif c == 34 or c == 39:
+            start = i
+            quote = c
+            i = i + 1
+            while i < n and source[i] != quote:
+                if source[i] == 10:
+                    line = line + 1
+                i = i + 1
+            if i < n:
+                i = i + 1
+            val = substr(source, start, i - start)
+            tokens[ti].kind = "STRING"
+            tokens[ti].value = val
+            tokens[ti].line = line
+            tokens[ti].column = col
+            ti = ti + 1
+            col = i - start + col
+        elif c == 43:
+            tokens[ti].kind = "PLUS"
+            tokens[ti].value = "+"
+            tokens[ti].line = line
+            tokens[ti].column = col
+            ti = ti + 1
+            i = i + 1
+            col = col + 1
+        elif c == 45:
+            if i + 1 < n and source[i + 1] == 62:
+                tokens[ti].kind = "RARROW"
+                tokens[ti].value = "->"
+                tokens[ti].line = line
+                tokens[ti].column = col
+                ti = ti + 1
+                i = i + 2
+                col = col + 2
+            else:
+                tokens[ti].kind = "MINUS"
+                tokens[ti].value = "-"
+                tokens[ti].line = line
+                tokens[ti].column = col
+                ti = ti + 1
+                i = i + 1
+                col = col + 1
+        elif c == 42:
+            tokens[ti].kind = "STAR"
+            tokens[ti].value = "*"
+            tokens[ti].line = line
+            tokens[ti].column = col
+            ti = ti + 1
+            i = i + 1
+            col = col + 1
+        elif c == 47:
+            tokens[ti].kind = "SLASH"
+            tokens[ti].value = "/"
+            tokens[ti].line = line
+            tokens[ti].column = col
+            ti = ti + 1
+            i = i + 1
+            col = col + 1
+        elif c == 37:
+            tokens[ti].kind = "PERCENT"
+            tokens[ti].value = "%"
+            tokens[ti].line = line
+            tokens[ti].column = col
+            ti = ti + 1
+            i = i + 1
+            col = col + 1
+        elif c == 61:
+            if i + 1 < n and source[i + 1] == 61:
+                tokens[ti].kind = "EQ_EQ"
+                tokens[ti].value = "=="
+                tokens[ti].line = line
+                tokens[ti].column = col
+                ti = ti + 1
+                i = i + 2
+                col = col + 2
+            else:
+                tokens[ti].kind = "EQ"
+                tokens[ti].value = "="
+                tokens[ti].line = line
+                tokens[ti].column = col
+                ti = ti + 1
+                i = i + 1
+                col = col + 1
+        elif c == 33:
+            if i + 1 < n and source[i + 1] == 61:
+                tokens[ti].kind = "BANG_EQ"
+                tokens[ti].value = "!="
+                tokens[ti].line = line
+                tokens[ti].column = col
+                ti = ti + 1
+                i = i + 2
+                col = col + 2
+            else:
+                tokens[ti].kind = "BANG"
+                tokens[ti].value = "!"
+                tokens[ti].line = line
+                tokens[ti].column = col
+                ti = ti + 1
+                i = i + 1
+                col = col + 1
+        elif c == 60:
+            if i + 1 < n and source[i + 1] == 61:
+                tokens[ti].kind = "LT_EQ"
+                tokens[ti].value = "<="
+                tokens[ti].line = line
+                tokens[ti].column = col
+                ti = ti + 1
+                i = i + 2
+                col = col + 2
+            else:
+                tokens[ti].kind = "LT"
+                tokens[ti].value = "<"
+                tokens[ti].line = line
+                tokens[ti].column = col
+                ti = ti + 1
+                i = i + 1
+                col = col + 1
+        elif c == 62:
+            if i + 1 < n and source[i + 1] == 61:
+                tokens[ti].kind = "GT_EQ"
+                tokens[ti].value = ">="
+                tokens[ti].line = line
+                tokens[ti].column = col
+                ti = ti + 1
+                i = i + 2
+                col = col + 2
+            else:
+                tokens[ti].kind = "GT"
+                tokens[ti].value = ">"
+                tokens[ti].line = line
+                tokens[ti].column = col
+                ti = ti + 1
+                i = i + 1
+                col = col + 1
+        elif c == 40:
+            tokens[ti].kind = "LPAREN"
+            tokens[ti].value = "("
+            tokens[ti].line = line
+            tokens[ti].column = col
+            ti = ti + 1
+            i = i + 1
+            col = col + 1
+        elif c == 41:
+            tokens[ti].kind = "RPAREN"
+            tokens[ti].value = ")"
+            tokens[ti].line = line
+            tokens[ti].column = col
+            ti = ti + 1
+            i = i + 1
+            col = col + 1
+        elif c == 91:
+            tokens[ti].kind = "LBRACKET"
+            tokens[ti].value = "["
+            tokens[ti].line = line
+            tokens[ti].column = col
+            ti = ti + 1
+            i = i + 1
+            col = col + 1
+        elif c == 93:
+            tokens[ti].kind = "RBRACKET"
+            tokens[ti].value = "]"
+            tokens[ti].line = line
+            tokens[ti].column = col
+            ti = ti + 1
+            i = i + 1
+            col = col + 1
+        elif c == 123:
+            tokens[ti].kind = "LBRACE"
+            tokens[ti].value = "{"
+            tokens[ti].line = line
+            tokens[ti].column = col
+            ti = ti + 1
+            i = i + 1
+            col = col + 1
+        elif c == 125:
+            tokens[ti].kind = "RBRACE"
+            tokens[ti].value = "}"
+            tokens[ti].line = line
+            tokens[ti].column = col
+            ti = ti + 1
+            i = i + 1
+            col = col + 1
+        elif c == 44:
+            tokens[ti].kind = "COMMA"
+            tokens[ti].value = ","
+            tokens[ti].line = line
+            tokens[ti].column = col
+            ti = ti + 1
+            i = i + 1
+            col = col + 1
+        elif c == 46:
+            tokens[ti].kind = "DOT"
+            tokens[ti].value = "."
+            tokens[ti].line = line
+            tokens[ti].column = col
+            ti = ti + 1
+            i = i + 1
+            col = col + 1
+        elif c == 58:
+            tokens[ti].kind = "COLON"
+            tokens[ti].value = ":"
+            tokens[ti].line = line
+            tokens[ti].column = col
+            ti = ti + 1
+            i = i + 1
+            col = col + 1
+        else:
+            val = chr(c)
+            tokens[ti].kind = "CHAR"
+            tokens[ti].value = val
+            tokens[ti].line = line
+            tokens[ti].column = col
+            ti = ti + 1
+            i = i + 1
+            col = col + 1
+
+    while indent_top > 0:
+        indent_top = indent_top - 1
+        tokens[ti].kind = "DEDENT"
+        tokens[ti].value = ""
+        tokens[ti].line = line
+        tokens[ti].column = col
+        ti = ti + 1
+
+    tokens[ti].kind = "EOF"
+    tokens[ti].value = ""
+    tokens[ti].line = line
+    tokens[ti].column = col
+    ti = ti + 1
+    return ti
+
+struct NodeStore:
+    capacity: i32
+    count: i32
+    nodes: *ASTNode
+
+fn new_node(st: *NodeStore, kind, value, op, line, col):
+    let idx = st.count
+    st.count = idx + 1
+    if idx < st.capacity:
+        st.nodes[idx].kind = kind
+        st.nodes[idx].value = value
+        st.nodes[idx].op = op
+        st.nodes[idx].line = line
+        st.nodes[idx].column = col
+        st.nodes[idx].first_child = -1
+        st.nodes[idx].next_sibling = -1
+    return idx
+
+fn add_child(st: *NodeStore, parent_idx, child_idx):
+    if child_idx < 0:
+        return
+    if st.nodes[parent_idx].first_child == -1:
+        st.nodes[parent_idx].first_child = child_idx
+        return
+    let last = st.nodes[parent_idx].first_child
+    while st.nodes[last].next_sibling >= 0:
+        last = st.nodes[last].next_sibling
+    st.nodes[last].next_sibling = child_idx
+
+struct ParserState:
+    tokens: *Token
+    count: i32
+    pos: i32
+
+fn peek_tok(st: *ParserState) -> Token:
+    if st.pos < st.count:
+        return st.tokens[st.pos]
+    return st.tokens[st.count - 1]
+
+fn advance_tok(st: *ParserState):
+    st.pos = st.pos + 1
+
+fn check_tok(st: *ParserState, kind: *char):
+    if st.pos >= st.count:
+        return 0
+    return st.tokens[st.pos].kind == kind
+
+fn expect_tok(st: *ParserState, kind: *char):
+    if check_tok(st, kind):
+        st.pos = st.pos + 1
+        return 1
+    let tok = peek_tok(st)
+    print("Parse error at line " + str(tok.line) + ":" + str(tok.column) + ": expected " + kind + ", got " + tok.kind)
+    return 0
+
+fn skip_nls(st: *ParserState):
+    while check_tok(st, "NEWLINE"):
+        st.pos = st.pos + 1
+
+fn parse_type(st: *ParserState, ns: *NodeStore):
+    let tok = peek_tok(st)
+    if tok.kind == "STAR":
+        st.pos = st.pos + 1
+        let base_node = parse_type(st, ns)
+        let node = new_node(ns, "PTR_TYPE", "", "", tok.line, tok.column)
+        add_child(ns, node, base_node)
+        return node
+    st.pos = st.pos + 1
+    return new_node(ns, "TYPE", tok.value, "", tok.line, tok.column)
+
+fn parse_primary(st: *ParserState, ns: *NodeStore):
+    skip_nls(st)
+    let tok = peek_tok(st)
+    if tok.kind == "NUMBER":
+        st.pos = st.pos + 1
+        return new_node(ns, "INT", tok.value, "", tok.line, tok.column)
+    elif tok.kind == "STRING":
+        st.pos = st.pos + 1
+        return new_node(ns, "STRING", tok.value, "", tok.line, tok.column)
+    elif tok.kind == "BOOL":
+        st.pos = st.pos + 1
+        return new_node(ns, "BOOL", tok.value, "", tok.line, tok.column)
+    elif tok.kind == "NONE":
+        st.pos = st.pos + 1
+        return new_node(ns, "NONE", "", "", tok.line, tok.column)
+    elif tok.kind == "IDENT":
+        st.pos = st.pos + 1
+        let node = new_node(ns, "IDENT", tok.value, "", tok.line, tok.column)
+        while 1:
+            skip_nls(st)
+            if check_tok(st, "LPAREN"):
+                st.pos = st.pos + 1
+                let call_node = new_node(ns, "CALL", "", "", tok.line, tok.column)
+                add_child(ns, call_node, node)
+                let first = 1
+                while 1:
+                    skip_nls(st)
+                    if check_tok(st, "RPAREN"):
+                        break
+                    if not first:
+                        if check_tok(st, "COMMA"):
+                            st.pos = st.pos + 1
+                    first = 0
+                    let arg_node = parse_expression(st, ns)
+                    add_child(ns, call_node, arg_node)
+                if check_tok(st, "RPAREN"):
+                    st.pos = st.pos + 1
+                node = call_node
+            elif check_tok(st, "LBRACKET"):
+                st.pos = st.pos + 1
+                let idx_node = parse_expression(st, ns)
+                let ix_node = new_node(ns, "INDEX", "", "", tok.line, tok.column)
+                add_child(ns, ix_node, node)
+                add_child(ns, ix_node, idx_node)
+                if check_tok(st, "RBRACKET"):
+                    st.pos = st.pos + 1
+                node = ix_node
+            elif check_tok(st, "DOT"):
+                st.pos = st.pos + 1
+                let member = peek_tok(st)
+                st.pos = st.pos + 1
+                let m_node = new_node(ns, "MEMBER", member.value, "", member.line, member.column)
+                add_child(ns, m_node, node)
+                node = m_node
+            else:
+                break
+        return node
+    elif tok.kind == "LPAREN":
+        st.pos = st.pos + 1
+        let expr_node = parse_expression(st, ns)
+        if check_tok(st, "RPAREN"):
+            st.pos = st.pos + 1
+        return expr_node
+    elif tok.kind == "MINUS":
+        st.pos = st.pos + 1
+        let m_op = parse_primary(st, ns)
+        let m_node = new_node(ns, "UNARY", "", "-", tok.line, tok.column)
+        add_child(ns, m_node, m_op)
+        return m_node
+    elif tok.kind == "BANG" or tok.kind == "NOT":
+        st.pos = st.pos + 1
+        let n_op = parse_primary(st, ns)
+        let n_node = new_node(ns, "UNARY", "", tok.value, tok.line, tok.column)
+        add_child(ns, n_node, n_op)
+        return n_node
+    return -1
+
+fn parse_mul_div(st: *ParserState, ns: *NodeStore):
+    skip_nls(st)
+    let left = parse_primary(st, ns)
+    while 1:
+        skip_nls(st)
+        if check_tok(st, "STAR") or check_tok(st, "SLASH") or check_tok(st, "PERCENT"):
+            let op_tok = peek_tok(st)
+            st.pos = st.pos + 1
+            let right = parse_primary(st, ns)
+            let bin = new_node(ns, "BINOP", "", op_tok.value, op_tok.line, op_tok.column)
+            add_child(ns, bin, left)
+            add_child(ns, bin, right)
+            left = bin
+        else:
+            break
+    return left
+
+fn parse_add_sub(st: *ParserState, ns: *NodeStore):
+    skip_nls(st)
+    let left = parse_mul_div(st, ns)
+    while 1:
+        skip_nls(st)
+        if check_tok(st, "PLUS") or check_tok(st, "MINUS"):
+            let op_tok = peek_tok(st)
+            st.pos = st.pos + 1
+            let right = parse_mul_div(st, ns)
+            let bin = new_node(ns, "BINOP", "", op_tok.value, op_tok.line, op_tok.column)
+            add_child(ns, bin, left)
+            add_child(ns, bin, right)
+            left = bin
+        else:
+            break
+    return left
+
+fn parse_comparison(st: *ParserState, ns: *NodeStore):
+    skip_nls(st)
+    let left = parse_add_sub(st, ns)
+    while 1:
+        skip_nls(st)
+        if check_tok(st, "EQ_EQ") or check_tok(st, "BANG_EQ") or check_tok(st, "LT") or check_tok(st, "LT_EQ") or check_tok(st, "GT") or check_tok(st, "GT_EQ"):
+            let op_tok = peek_tok(st)
+            st.pos = st.pos + 1
+            let right = parse_add_sub(st, ns)
+            let bin = new_node(ns, "BINOP", "", op_tok.value, op_tok.line, op_tok.column)
+            add_child(ns, bin, left)
+            add_child(ns, bin, right)
+            left = bin
+        else:
+            break
+    return left
+
+fn parse_and_or(st: *ParserState, ns: *NodeStore):
+    skip_nls(st)
+    let left = parse_comparison(st, ns)
+    while 1:
+        skip_nls(st)
+        if check_tok(st, "AND") or check_tok(st, "OR"):
+            let op_tok = peek_tok(st)
+            st.pos = st.pos + 1
+            let right = parse_comparison(st, ns)
+            let bin = new_node(ns, "BINOP", "", op_tok.value, op_tok.line, op_tok.column)
+            add_child(ns, bin, left)
+            add_child(ns, bin, right)
+            left = bin
+        else:
+            break
+    return left
+
+fn parse_expression(st: *ParserState, ns: *NodeStore):
+    return parse_and_or(st, ns)
+
+fn parse_block(st: *ParserState, ns: *NodeStore):
+    skip_nls(st)
+    if check_tok(st, "INDENT"):
+        st.pos = st.pos + 1
+    while st.pos < st.count:
+        skip_nls(st)
+        if check_tok(st, "DEDENT") or check_tok(st, "EOF"):
+            break
+        let stmt_node = parse_statement(st, ns)
+        skip_nls(st)
+    while check_tok(st, "DEDENT"):
+        st.pos = st.pos + 1
+
+fn parse_statement(st: *ParserState, ns: *NodeStore):
+    skip_nls(st)
+    let tok = peek_tok(st)
+
+    if tok.kind == "STRUCT":
+        st.pos = st.pos + 1
+        let name_tok = peek_tok(st)
+        st.pos = st.pos + 1
+        let node = new_node(ns, "STRUCT", name_tok.value, "", tok.line, tok.column)
+        if check_tok(st, "COLON"):
+            st.pos = st.pos + 1
+            skip_nls(st)
+            if check_tok(st, "INDENT"):
+                st.pos = st.pos + 1
+            while 1:
+                skip_nls(st)
+                if check_tok(st, "DEDENT") or check_tok(st, "EOF"):
+                    break
+                if check_tok(st, "IDENT"):
+                    let field_tok = peek_tok(st)
+                    st.pos = st.pos + 1
+                    if check_tok(st, "COLON"):
+                        st.pos = st.pos + 1
+                        let type_node = parse_type(st, ns)
+                        let field_node = new_node(ns, "FIELD", field_tok.value, "", field_tok.line, field_tok.column)
+                        add_child(ns, field_node, type_node)
+                        add_child(ns, node, field_node)
+                    else:
+                        let field_node = new_node(ns, "FIELD", field_tok.value, "", field_tok.line, field_tok.column)
+                        add_child(ns, node, field_node)
+                else:
+                    st.pos = st.pos + 1
+            while check_tok(st, "DEDENT"):
+                st.pos = st.pos + 1
+        return node
+
+    elif tok.kind == "FN":
+        st.pos = st.pos + 1
+        let name_tok = peek_tok(st)
+        st.pos = st.pos + 1
+        let node = new_node(ns, "FN", name_tok.value, "", tok.line, tok.column)
+        if check_tok(st, "LPAREN"):
+            st.pos = st.pos + 1
+            while 1:
+                skip_nls(st)
+                if check_tok(st, "RPAREN"):
+                    break
+                if check_tok(st, "COMMA"):
+                    st.pos = st.pos + 1
+                    continue
+                let param_tok = peek_tok(st)
+                st.pos = st.pos + 1
+                if check_tok(st, "COLON"):
+                    st.pos = st.pos + 1
+                    let type_node = parse_type(st, ns)
+                    let param_node = new_node(ns, "PARAM", param_tok.value, "", param_tok.line, param_tok.column)
+                    add_child(ns, param_node, type_node)
+                    add_child(ns, node, param_node)
+                else:
+                    let param_node = new_node(ns, "PARAM", param_tok.value, "", param_tok.line, param_tok.column)
+                    add_child(ns, node, param_node)
+            if check_tok(st, "RPAREN"):
+                st.pos = st.pos + 1
+        if check_tok(st, "RARROW"):
+            st.pos = st.pos + 1
+            let ret_node = parse_type(st, ns)
+            add_child(ns, node, ret_node)
+        if check_tok(st, "COLON"):
+            st.pos = st.pos + 1
+            skip_nls(st)
+            if check_tok(st, "INDENT"):
+                st.pos = st.pos + 1
+            parse_block(st, ns)
+        return node
+
+    elif tok.kind == "LET":
+        st.pos = st.pos + 1
+        let name_tok = peek_tok(st)
+        st.pos = st.pos + 1
+        let node = new_node(ns, "LET", name_tok.value, "", tok.line, tok.column)
+        if check_tok(st, "COLON"):
+            st.pos = st.pos + 1
+            let type_node = parse_type(st, ns)
+            add_child(ns, node, type_node)
+        if check_tok(st, "EQ"):
+            st.pos = st.pos + 1
+            let expr_node = parse_expression(st, ns)
+            add_child(ns, node, expr_node)
+        return node
+
+    elif tok.kind == "RETURN":
+        st.pos = st.pos + 1
+        let node = new_node(ns, "RETURN", "", "", tok.line, tok.column)
+        if not check_tok(st, "NEWLINE") and not check_tok(st, "DEDENT") and not check_tok(st, "EOF"):
+            let expr_node = parse_expression(st, ns)
+            add_child(ns, node, expr_node)
+        return node
+
+    elif tok.kind == "IF":
+        st.pos = st.pos + 1
+        let node = new_node(ns, "IF", "", "", tok.line, tok.column)
+        let cond_node = parse_expression(st, ns)
+        add_child(ns, node, cond_node)
+        if check_tok(st, "COLON"):
+            st.pos = st.pos + 1
+        parse_block(st, ns)
+        while check_tok(st, "ELSE"):
+            st.pos = st.pos + 1
+            if check_tok(st, "IF"):
+                st.pos = st.pos + 1
+                let elif_node = new_node(ns, "ELIF", "", "", tok.line, tok.column)
+                let cond2_node = parse_expression(st, ns)
+                add_child(ns, elif_node, cond2_node)
+                if check_tok(st, "COLON"):
+                    st.pos = st.pos + 1
+                parse_block(st, ns)
+                add_child(ns, node, elif_node)
+            else:
+                let else_node = new_node(ns, "ELSE", "", "", tok.line, tok.column)
+                if check_tok(st, "COLON"):
+                    st.pos = st.pos + 1
+                parse_block(st, ns)
+                add_child(ns, node, else_node)
+        return node
+
+    elif tok.kind == "WHILE":
+        st.pos = st.pos + 1
+        let node = new_node(ns, "WHILE", "", "", tok.line, tok.column)
+        let cond_node = parse_expression(st, ns)
+        add_child(ns, node, cond_node)
+        if check_tok(st, "COLON"):
+            st.pos = st.pos + 1
+        parse_block(st, ns)
+        return node
+
+    elif tok.kind == "PRINT":
+        st.pos = st.pos + 1
+        let node = new_node(ns, "PRINT", "", "", tok.line, tok.column)
+        if check_tok(st, "LPAREN"):
+            st.pos = st.pos + 1
+            let first = 1
+            while 1:
+                skip_nls(st)
+                if check_tok(st, "RPAREN"):
+                    break
+                if not first:
+                    if check_tok(st, "COMMA"):
+                        st.pos = st.pos + 1
+                first = 0
+                let arg_node = parse_expression(st, ns)
+                add_child(ns, node, arg_node)
+            if check_tok(st, "RPAREN"):
+                st.pos = st.pos + 1
+        return node
+
+    elif tok.kind == "BREAK":
+        st.pos = st.pos + 1
+        return new_node(ns, "BREAK", "", "", tok.line, tok.column)
+    elif tok.kind == "CONTINUE":
+        st.pos = st.pos + 1
+        return new_node(ns, "CONTINUE", "", "", tok.line, tok.column)
+    elif tok.kind == "PASS":
+        st.pos = st.pos + 1
+        return new_node(ns, "PASS", "", "", tok.line, tok.column)
+
+    let expr_node = parse_expression(st, ns)
+    if expr_node >= 0:
+        if check_tok(st, "EQ"):
+            st.pos = st.pos + 1
+            let val_node = parse_expression(st, ns)
+            let assign = new_node(ns, "ASSIGN", "", "", tok.line, tok.column)
+            add_child(ns, assign, expr_node)
+            add_child(ns, assign, val_node)
+            return assign
+        elif check_tok(st, "PLUS_EQ"):
+            st.pos = st.pos + 1
+            let val_node = parse_expression(st, ns)
+            let assign = new_node(ns, "ASSIGN", "", "+=", tok.line, tok.column)
+            add_child(ns, assign, expr_node)
+            add_child(ns, assign, val_node)
+            return assign
+        elif check_tok(st, "MINUS_EQ"):
+            st.pos = st.pos + 1
+            let val_node = parse_expression(st, ns)
+            let assign = new_node(ns, "ASSIGN", "", "-=", tok.line, tok.column)
+            add_child(ns, assign, expr_node)
+            add_child(ns, assign, val_node)
+            return assign
+    return expr_node
+
+fn print_ast(ns: *NodeStore, node_idx, indent):
+    if node_idx < 0:
+        return
+    let node = ns.nodes[node_idx]
+    let i = 0
+    while i < indent:
+        print("  ")
+        i = i + 1
+    let extra = ""
+    if node.value != "":
+        extra = "(" + node.value + ")"
+    if node.op != "":
+        extra = "[" + node.op + "]"
+    print(node.kind + extra)
+    let child = node.first_child
+    while child >= 0:
+        print_ast(ns, child, indent + 1)
+        child = ns.nodes[child].next_sibling
+
+fn main():
+    let filename = "self_lexer.spy"
+    let source = read_file(filename)
+    if len(source) == 0:
+        print("Error: could not read " + filename)
+        return
+    let est_count = len(source) / 2 + 100
+    let tokens: *Token = alloc[Token](est_count)
+    let tcount = lex(source, tokens)
+    print("Tokens: " + str(tcount))
+    let i = 0
+    while i < tcount:
+        print(tokens[i].kind + ": " + tokens[i].value)
+        i = i + 1
+    print("---")
+    print("AST:")
+    let ns: *NodeStore = alloc[NodeStore](1)
+    let max_nodes = len(source) / 5 + 100
+    ns.capacity = max_nodes
+    ns.count = 0
+    ns.nodes = alloc[ASTNode](max_nodes)
+    let st: *ParserState = alloc[ParserState](1)
+    st.tokens = tokens
+    st.count = tcount
+    st.pos = 0
+    let root = new_node(ns, "PROGRAM", "", "", 0, 0)
+    while st.pos < st.count:
+        skip_nls(st)
+        if check_tok(st, "EOF"):
+            break
+        let stmt_node = parse_statement(st, ns)
+        if stmt_node >= 0:
+            add_child(ns, root, stmt_node)
+    print_ast(ns, root, 0)

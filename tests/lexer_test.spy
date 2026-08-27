@@ -1,0 +1,201 @@
+# Spy Programming Language Engine & Compiler
+# Copyright (C) 2026 Valuvajjala Vivek Vardhan Rao
+#
+# Author: Valuvajjala Vivek Vardhan Rao
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+fn is_whitespace(c):
+    return c == 32 or c == 9 or c == 10 or c == 13
+
+fn is_digit(c):
+    return c >= 48 and c <= 57
+
+fn is_alpha(c):
+    return c >= 65 and c <= 90 or c >= 97 and c <= 122 or c == 95
+
+fn is_alnum(c):
+    return is_digit(c) or is_alpha(c)
+
+fn main():
+    let source = read_file("fn_test.spy")
+    print("--- source ---")
+    print(source)
+    print("--- tokens ---")
+    let i = 0
+    let n = len(source)
+    let start = 0
+    while i < n:
+        let c = source[i]
+        if is_whitespace(c):
+            i = i + 1
+        elif is_digit(c):
+            start = i
+            while i < n and is_digit(source[i]):
+                i = i + 1
+            print("NUMBER: " + substr(source, start, i - start))
+        elif is_alpha(c):
+            start = i
+            while i < n and is_alnum(source[i]):
+                i = i + 1
+            let word = substr(source, start, i - start)
+            if word == "fn":
+                print("FN")
+            elif word == "if":
+                print("IF")
+            elif word == "else":
+                print("ELSE")
+            elif word == "while":
+                print("WHILE")
+            elif word == "for":
+                print("FOR")
+            elif word == "return":
+                print("RETURN")
+            elif word == "let":
+                print("LET")
+            elif word == "and":
+                print("AND")
+            elif word == "or":
+                print("OR")
+            elif word == "not":
+                print("NOT")
+            elif word == "true" or word == "false":
+                print("BOOL: " + word)
+            elif word == "none" or word == "None":
+                print("NONE")
+            elif word == "print":
+                print("PRINT")
+            elif word == "import":
+                print("IMPORT")
+            elif word == "from":
+                print("FROM")
+            elif word == "match":
+                print("MATCH")
+            elif word == "class":
+                print("CLASS")
+            elif word == "struct":
+                print("STRUCT")
+            elif word == "enum":
+                print("ENUM")
+            elif word == "try":
+                print("TRY")
+            elif word == "except":
+                print("EXCEPT")
+            elif word == "raise":
+                print("RAISE")
+            elif word == "break":
+                print("BREAK")
+            elif word == "continue":
+                print("CONTINUE")
+            elif word == "pass":
+                print("PASS")
+            else:
+                print("IDENT: " + word)
+        elif c == 34:
+            start = i
+            i = i + 1
+            while i < n and source[i] != 34:
+                i = i + 1
+            if i < n:
+                i = i + 1
+            print("STRING: " + substr(source, start, i - start))
+        elif c == 39:
+            start = i
+            i = i + 1
+            while i < n and source[i] != 39:
+                i = i + 1
+            if i < n:
+                i = i + 1
+            print("STRING: " + substr(source, start, i - start))
+        elif c == 43:
+            i = i + 1
+            print("PLUS")
+        elif c == 45:
+            if i + 1 < n and source[i + 1] == 62:
+                i = i + 2
+                print("RARROW")
+            else:
+                i = i + 1
+                print("MINUS")
+        elif c == 42:
+            i = i + 1
+            print("STAR")
+        elif c == 47:
+            i = i + 1
+            print("SLASH")
+        elif c == 61:
+            if i + 1 < n and source[i + 1] == 61:
+                i = i + 2
+                print("EQ_EQ")
+            else:
+                i = i + 1
+                print("EQ")
+        elif c == 33:
+            if i + 1 < n and source[i + 1] == 61:
+                i = i + 2
+                print("BANG_EQ")
+            else:
+                i = i + 1
+                print("BANG")
+        elif c == 60:
+            if i + 1 < n and source[i + 1] == 61:
+                i = i + 2
+                print("LT_EQ")
+            else:
+                i = i + 1
+                print("LT")
+        elif c == 62:
+            if i + 1 < n and source[i + 1] == 61:
+                i = i + 2
+                print("GT_EQ")
+            else:
+                i = i + 1
+                print("GT")
+        elif c == 40:
+            i = i + 1
+            print("LPAREN")
+        elif c == 41:
+            i = i + 1
+            print("RPAREN")
+        elif c == 91:
+            i = i + 1
+            print("LBRACKET")
+        elif c == 93:
+            i = i + 1
+            print("RBRACKET")
+        elif c == 123:
+            i = i + 1
+            print("LBRACE")
+        elif c == 125:
+            i = i + 1
+            print("RBRACE")
+        elif c == 44:
+            i = i + 1
+            print("COMMA")
+        elif c == 46:
+            i = i + 1
+            print("DOT")
+        elif c == 58:
+            i = i + 1
+            print("COLON")
+        elif c == 59:
+            i = i + 1
+            print("SEMICOLON")
+        elif c == 35:
+            while i < n and source[i] != 10:
+                i = i + 1
+            print("COMMENT")
+        else:
+            print("CHAR: " + chr(c))
+            i = i + 1

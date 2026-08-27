@@ -1,0 +1,13 @@
+# Spy Programming Language Engine & Compiler
+# Copyright (C) 2026 Valuvajjala Vivek Vardhan Rao
+# Author: Valuvajjala Vivek Vardhan Rao
+#
+# GNU General Public License v3.0
+
+fn math_add(a: i32, b: i32) -> i32:
+    return a + b
+
+fn main() -> i32:
+    let res: i32 = math::add(10, 20)
+    printf("Namespace Test Output: %d\n", res)
+    return 0

@@ -1,0 +1,183 @@
+# Spy Programming Language Engine & Compiler
+# Copyright (C) 2026 Valuvajjala Vivek Vardhan Rao
+#
+# Author: Valuvajjala Vivek Vardhan Rao
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+fn print_help():
+    print("=== Spy File Manager ===")
+    print("Commands:")
+    print("  ls [path]        - List files")
+    print("  cd <path>        - Change directory")
+    print("  pwd              - Print working directory")
+    print("  cat <file>       - Read file contents")
+    print("  touch <file>     - Create empty file")
+    print("  mkdir <dir>      - Create directory")
+    print("  rm <file>        - Remove file")
+    print("  cp <src> <dst>   - Copy file")
+    print("  mv <src> <dst>   - Move/rename file")
+    print("  size <file>      - Show file size")
+    print("  info <file>      - Show file info")
+    print("  find <name>      - Find files matching name")
+    print("  help             - Show this help")
+
+fn cmd_ls(path: *char):
+    let result = exec("dir /b " + path)
+    if result == "":
+        print("  (empty)")
+        return
+    print(result)
+
+fn cmd_pwd():
+    print(get_cwd())
+
+fn cmd_cd(path: *char):
+    let r = chdir(path)
+    if r == 0:
+        print("Changed to: " + get_cwd())
+    else:
+        print("Error: cannot change to " + path)
+
+fn cmd_cat(path: *char):
+    if file_exists(path) == 0:
+        print("Error: file not found: " + path)
+        return
+    let content = read_file(path)
+    print(content)
+
+fn cmd_touch(path: *char):
+    write_file(path, "")
+    print("Created: " + path)
+
+fn cmd_mkdir(path: *char):
+    let r = mkdir(path)
+    if r == 0:
+        print("Created directory: " + path)
+    else:
+        print("Error: cannot create directory: " + path)
+
+fn cmd_rm(path: *char):
+    if file_exists(path) == 0:
+        print("Error: file not found: " + path)
+        return
+    let r = rm(path)
+    if r == 0:
+        print("Removed: " + path)
+    else:
+        print("Error: cannot remove: " + path)
+
+fn cmd_cp(src: *char, dst: *char):
+    if file_exists(src) == 0:
+        print("Error: source not found: " + src)
+        return
+    cp(src, dst)
+    print("Copied: " + src + " -> " + dst)
+
+fn cmd_mv(src: *char, dst: *char):
+    if file_exists(src) == 0:
+        print("Error: source not found: " + src)
+        return
+    rename_file(src, dst)
+    print("Moved: " + src + " -> " + dst)
+
+fn cmd_size(path: *char):
+    if file_exists(path) == 0:
+        print("Error: file not found: " + path)
+        return
+    let sz = file_size(path)
+    print("Size: %d bytes" % sz)
+
+fn cmd_info(path: *char):
+    if file_exists(path) == 0:
+        print("Error: file not found: " + path)
+        return
+    let sz = file_size(path)
+    print("Name:  " + path)
+    print("Size:  %d bytes" % sz)
+    print("Type:  file")
+    print("CWD:   " + get_cwd())
+
+fn cmd_find(name: *char):
+    let result = exec("dir /s /b " + name)
+    print(result)
+
+fn main():
+    let args_count = len(sys.argv)
+    if args_count < 2:
+        print_help()
+        return
+    let cmd = sys.argv[1]
+    if cmd == "ls":
+        if args_count >= 3:
+            cmd_ls(sys.argv[2])
+        else:
+            cmd_ls(".")
+    else if cmd == "cd":
+        if args_count >= 3:
+            cmd_cd(sys.argv[2])
+        else:
+            print("Usage: fm cd <path>")
+    else if cmd == "pwd":
+        cmd_pwd()
+    else if cmd == "cat":
+        if args_count >= 3:
+            cmd_cat(sys.argv[2])
+        else:
+            print("Usage: fm cat <file>")
+    else if cmd == "touch":
+        if args_count >= 3:
+            cmd_touch(sys.argv[2])
+        else:
+            print("Usage: fm touch <file>")
+    else if cmd == "mkdir":
+        if args_count >= 3:
+            cmd_mkdir(sys.argv[2])
+        else:
+            print("Usage: fm mkdir <dir>")
+    else if cmd == "rm":
+        if args_count >= 3:
+            cmd_rm(sys.argv[2])
+        else:
+            print("Usage: fm rm <file>")
+    else if cmd == "cp":
+        if args_count >= 4:
+            cmd_cp(sys.argv[2], sys.argv[3])
+        else:
+            print("Usage: fm cp <src> <dst>")
+    else if cmd == "mv":
+        if args_count >= 4:
+            cmd_mv(sys.argv[2], sys.argv[3])
+        else:
+            print("Usage: fm mv <src> <dst>")
+    else if cmd == "size":
+        if args_count >= 3:
+            cmd_size(sys.argv[2])
+        else:
+            print("Usage: fm size <file>")
+    else if cmd == "info":
+        if args_count >= 3:
+            cmd_info(sys.argv[2])
+        else:
+            print("Usage: fm info <file>")
+    else if cmd == "find":
+        if args_count >= 3:
+            cmd_find(sys.argv[2])
+        else:
+            print("Usage: fm find <name>")
+    else if cmd == "help":
+        print_help()
+    else:
+        print("Unknown command: " + cmd)
+        print("Use 'help' for available commands")

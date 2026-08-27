@@ -1,0 +1,17 @@
+build/
+*.exe
+*.obj
+*.o
+*.pdb
+*.ll
+*.s
+*.asm
+spy_output.c
+spy_output.cpp
+spy_output_preprocessed.c
+bin/
+*.out
+.vs/
+.vscode/
+__pycache__/
+src/spy_compiler
