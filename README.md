@@ -1,3 +1,5 @@
+<p align="center"><img src="assets/logo.png" width="128" alt="Spy Logo"/></p>
+
 # 🕵️ Spy Language
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
@@ -215,6 +217,7 @@ spy-language/
 ├── include/spy/   # Headers (AST, Token, Codegen)
 ├── spyui/         # UI framework (spyui.h/cpp)
 ├── tests/         # 40+ .spy examples
+├── assets/        # Logo/icons (copyrighted, not GPL — see assets/README_ICON_LICENSE.txt)
 ├── CMakeLists.txt
 └── LICENSE (GPL-3.0)
 ```
@@ -233,6 +236,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) — PRs welcome! Please read coding style
 
 **GPL-3.0** — Copyright (C) 2026 Valuvajjala Vivek Vardhan Rao  
 Free to use, modify, and distribute. Modified versions must stay GPL-3.0.
+
+**Logo / Icons:** `assets/logo.png`, `favicon.ico`, etc. are **Copyright © M4 Spider** — **NOT** under GPL. You may use them unmodified to refer to the official Spy Language. If you fork/modify Spy, you must **not** use these icons — use your own branding. See `assets/README_ICON_LICENSE.txt`.
 
 ---
 Made with ❤️ in India — M4 Spy Language — *"No headers. Just code."*
