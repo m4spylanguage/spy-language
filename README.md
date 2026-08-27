@@ -1,4 +1,4 @@
-<p align="center"><img src="assets/logo.png" width="128" alt="Spy Logo"/></p>
+<p align="center"><img src="assets/spy-logo.png" width="128" alt="Spy Logo"/></p>
 
 # 🕵️ Spy Language
 
@@ -237,7 +237,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) — PRs welcome! Please read coding style
 **GPL-3.0** — Copyright (C) 2026 Valuvajjala Vivek Vardhan Rao  
 Free to use, modify, and distribute. Modified versions must stay GPL-3.0.
 
-**Logo / Icons:** `assets/logo.png`, `favicon.ico`, etc. are **Copyright © M4 Spider** — **NOT** under GPL. You may use them unmodified to refer to the official Spy Language. If you fork/modify Spy, you must **not** use these icons — use your own branding. See `assets/README_ICON_LICENSE.txt`.
+**Logo / Icons:** `assets/spy-logo.png`, `spy.ico`, etc. are **Copyright © M4 Spider** — **NOT** under GPL. You may use them unmodified to refer to the official Spy Language. If you fork/modify Spy, you must **not** use these icons — use your own branding. See `assets/README_ICON_LICENSE.txt`.
 
 ---
 Made with ❤️ in India — M4 Spy Language — *"No headers. Just code."*

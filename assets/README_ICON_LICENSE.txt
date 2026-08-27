@@ -1,6 +1,6 @@
 Icon / Logo Copyright Notice
 -----------------------------
-The Spy logo/icons in this folder (favicon.ico, logo.png, etc.) are
+The Spy logo/icons in this folder (spy.ico, spy-logo.png, etc.) are
 Copyright (C) 2026 Valuvajjala Vivek Vardhan Rao / M4 Spider
 
 These images are NOT covered by GPL-3.0.
