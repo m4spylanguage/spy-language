@@ -27,6 +27,21 @@ fn main():
 ./spy hello.spy --tokens     # show tokens
 ```
 
+## 🏗️ Architecture
+
+<p align="center"><img src="assets/architecture.png" alt="Spy Architecture" width="900"/></p>
+
+```
+Spy Code (.spy) → Spy Compiler (AST Parser) → 4 Backends → Native Output
+```
+
+| Backend | Flag | Output | Toolchain |
+|---------|------|--------|-----------|
+| 1. Default C | (default) | `spy_output.c` | clang |
+| 2. C++ | `-cpp` | `spy_output.cpp` | clang++ |
+| 3. LLVM IR | `-ir` | `spy_output.ll` | llvm-as / opt |
+| 4. Assembly | `-asm` | `spy_output.s` | nasm / gcc |
+
 ---
 
 ## 💭 Why Spy? Why We Built This
